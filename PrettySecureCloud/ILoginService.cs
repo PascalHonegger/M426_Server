@@ -6,12 +6,15 @@ namespace PrettySecureCloud
 	public interface ILoginService
 	{
 		[OperationContract]
-		bool MailValid(string mail);
+		bool UsernameUnique(string username);
 
 		[OperationContract]
-		void Register(string mail, string password);
+		void Register(string username, string password);
 
 		[OperationContract]
-		void Login(string mail, string password);
+		User Login(string username, string password);
+
+		[OperationContract]
+		bool Update(User newUserData);
 	}
 }
