@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections.Generic;
 
 namespace PrettySecureCloud
 {
@@ -6,22 +6,41 @@ namespace PrettySecureCloud
 	{
 		public bool UsernameUnique(string username)
 		{
-			throw new NotImplementedException();
+			return true;
 		}
 
-		public void Register(string username, string password)
+		public void Register(string username, string mail, string password)
 		{
-			throw new NotImplementedException();
+			//TODO
 		}
 
 		public User Login(string username, string password)
 		{
-			throw new NotImplementedException();
+			return new User
+			{
+				Id = 42,
+				Username = username,
+				Services = new List<CloudService>
+				{
+					new CloudService
+					{
+						LoginToken = "QWERASDFQWERJAKVJASD",
+						Name = "Privat DropBox",
+						Type = ServiceType.DropBox
+					},
+					new CloudService
+					{
+						LoginToken = "asdfadsfjqerjküapsfdasdf",
+						Name = "Geschäft OneDrive",
+						Type = ServiceType.OneDrive
+					}
+				}
+			};
 		}
 
-		public bool Update(User newUserData)
+		public void Update(User newUserData)
 		{
-			throw new NotImplementedException();
+			//TODO
 		}
 	}
 }

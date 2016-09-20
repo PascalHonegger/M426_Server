@@ -9,12 +9,12 @@ namespace PrettySecureCloud
 		bool UsernameUnique(string username);
 
 		[OperationContract]
-		void Register(string username, string password);
+		void Register(string username, string mail, string password);
 
 		[OperationContract]
 		User Login(string username, string password);
 
 		[OperationContract]
-		bool Update(User newUserData);
+		void Update(User newUserData);
 	}
 }
