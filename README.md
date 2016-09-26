@@ -1,2 +1,2 @@
-# M426_Server
-The Server für M426.
+# PrettySecureCloud Server
+The Server for M426.
