@@ -53,7 +53,7 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DBConn.cs" />
+    <Compile Include="DbConn.cs" />
     <Compile Include="CloudService.cs" />
     <Compile Include="LoginService.svc.cs">
       <DependentUpon>LoginService.svc</DependentUpon>

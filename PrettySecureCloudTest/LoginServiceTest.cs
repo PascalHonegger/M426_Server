@@ -3,11 +3,10 @@ using PrettySecureCloud;
 
 namespace PrettySecureCloudTest
 {
-	[TestFixture, Category("IntegrationTest")]
+	[TestFixture]
+	[Category("IntegrationTest")]
 	public class LoginServiceTest
 	{
-		private LoginService _unitUnderTest; 
-
 		[SetUp]
 		public void Setup()
 		{
@@ -19,6 +18,8 @@ namespace PrettySecureCloudTest
 		{
 			_unitUnderTest = null;
 		}
+
+		private LoginService _unitUnderTest;
 
 		[Test]
 		public void TestUsernameUnique()

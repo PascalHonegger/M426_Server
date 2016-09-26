@@ -7,9 +7,24 @@ namespace PrettySecureCloud
 {
 	public class LoginService : ILoginService
 	{
+		private static readonly SqlCommand InsertUser = DbConn.Command;
+		private static readonly SqlCommand LoginUser = DbConn.Command;
 
-		private static SqlCommand InsertUser = DBConn.Command;
-		private static SqlCommand LoginUser = DBConn.Command;
+
+		public LoginService()
+		{
+			InsertUser.CommandText =
+				"insert into tbl_user(username, e-mail, password, publickey, privatkey) values(@username, @e-mail, @password, @publikey, @privatkey)";
+			LoginUser.CommandText = "select * from tbl_user where username = @username";
+
+			InsertUser.Parameters.Add("@username", SqlDbType.NText);
+			InsertUser.Parameters.Add("@e-mail", SqlDbType.NText);
+			InsertUser.Parameters.Add("@password", SqlDbType.NText);
+			InsertUser.Parameters.Add("@publickey", SqlDbType.NText);
+			InsertUser.Parameters.Add("@privatekey", SqlDbType.NText);
+
+			LoginUser.Parameters.Add("@username", SqlDbType.NText);
+		}
 
 		public bool UsernameUnique(string username)
 		{
@@ -69,20 +84,6 @@ namespace PrettySecureCloud
 					Secret = "1324185678456245134134123"
 				}
 			};
-		}
-
-		public LoginService()
-		{
-			InsertUser.CommandText = "insert into tbl_user(username, e-mail, password, publickey, privatkey) values(@username, @e-mail, @password, @publikey, @privatkey)";
-			LoginUser.CommandText = "select * from tbl_user where username = @username";
-
-			InsertUser.Parameters.Add("@username", SqlDbType.NText);
-			InsertUser.Parameters.Add("@e-mail", SqlDbType.NText);
-			InsertUser.Parameters.Add("@password", SqlDbType.NText);
-			InsertUser.Parameters.Add("@publickey", SqlDbType.NText);
-			InsertUser.Parameters.Add("@privatekey", SqlDbType.NText);
-
-			LoginUser.Parameters.Add("@username", SqlDbType.NText);
 		}
 	}
 }

@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Linq;
-using System.Net.Configuration;
-using System.Web;
+﻿using System.Data.SqlClient;
 using PrettySecureCloud.Properties;
 
 namespace PrettySecureCloud
 {
-	public static class DBConn
-{
-		private static SqlConnection _conn;
+	public static class DbConn
+	{
+		private static SqlConnection _connection;
 
-		private static SqlConnection Connection => _conn ?? (_conn = new SqlConnection(Settings.Default.ConnectionString) );
+		private static SqlConnection Connection
+			=> _connection ?? (_connection = new SqlConnection(Settings.Default.ConnectionString));
 
 		public static SqlCommand Command => Connection.CreateCommand();
-
-}
+	}
 }
