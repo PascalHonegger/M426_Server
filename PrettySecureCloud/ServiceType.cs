@@ -3,15 +3,15 @@
 namespace PrettySecureCloud
 {
 	[DataContract]
-	public enum ServiceType
+	public class ServiceType
 	{
-		[EnumMember]
-		DropBox,
-		[EnumMember]
-		OneDrive,
-		[EnumMember]
-		AppleICloud,
-		[EnumMember]
-		GoogleDrive
+		[DataMember]
+		public string Name { get; set; }
+
+		[DataMember]
+		public string Key { get; set; }
+
+		[DataMember]
+		public string Secret { get; set; }
 	}
 }

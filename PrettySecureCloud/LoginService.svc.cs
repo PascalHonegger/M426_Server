@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace PrettySecureCloud
 {
@@ -16,6 +17,8 @@ namespace PrettySecureCloud
 
 		public User Login(string username, string password)
 		{
+			var serviceTypeDropbox = LoadAllServices().First();
+
 			return new User
 			{
 				Id = 42,
@@ -26,13 +29,13 @@ namespace PrettySecureCloud
 					{
 						LoginToken = "QWERASDFQWERJAKVJASD",
 						Name = "Privat DropBox",
-						Type = ServiceType.DropBox
+						Type = serviceTypeDropbox
 					},
 					new CloudService
 					{
 						LoginToken = "asdfadsfjqerjküapsfdasdf",
-						Name = "Geschäft OneDrive",
-						Type = ServiceType.OneDrive
+						Name = "Geschäft DropBox",
+						Type = serviceTypeDropbox
 					}
 				}
 			};
@@ -41,6 +44,19 @@ namespace PrettySecureCloud
 		public void Update(User newUserData)
 		{
 			//TODO
+		}
+
+		public IEnumerable<ServiceType> LoadAllServices()
+		{
+			return new List<ServiceType>
+			{
+				new ServiceType
+				{
+					Key = "XASDFQER",
+					Name = "DropBox",
+					Secret = "1324185678456245134134123"
+				}
+			};
 		}
 	}
 }
