@@ -17,6 +17,11 @@ namespace PrettySecureCloud
 			return true;
 		}
 
+		public bool EmailUnique(string username)
+		{
+			return false;
+		}
+
 		public void Register(string username, string mail, string password)
 		{
 			//TODO

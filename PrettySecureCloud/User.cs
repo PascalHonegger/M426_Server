@@ -13,6 +13,15 @@ namespace PrettySecureCloud
 		public string Username { get; set; }
 
 		[DataMember]
+		public string Mail { get; set; }
+
+		[DataMember]
+		public string PrivateKey { get; set; }
+
+		[DataMember]
+		public string PublicKey { get; set; }
+
+		[DataMember]
 		public IEnumerable<CloudService> Services { get; set; }
 	}
 }
