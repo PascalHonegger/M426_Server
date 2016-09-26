@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="SqlServer" id="Project_c5750e7" html="y" template="Default" database="SqlServer" >
+	<schema name="dbo" catalogname="PrettySecureCloud" schemaname="dbo" >
+		<table name="tbl_Service" >
+			<column name="id_Service" type="int" jt="4" mandatory="y" autoincrement="y" />
+			<column name="name" type="varchar" length="100" jt="12" mandatory="y" />
+			<column name="appkey" type="varchar" length="500" jt="12" mandatory="y" />
+			<column name="appsecret" type="varchar" length="500" jt="12" />
+			<index name="Pk_tbl_Service" unique="PRIMARY_KEY" >
+				<column name="id_Service" />
+			</index>
+		</table>
+		<table name="tbl_User" >
+			<column name="id_User" type="int" jt="4" mandatory="y" autoincrement="y" />
+			<column name="username" type="varchar" length="100" jt="12" mandatory="y" />
+			<column name="email" type="varchar" length="100" jt="12" mandatory="y" />
+			<column name="password" type="varchar" length="500" jt="12" mandatory="y" />
+			<column name="private_Key" type="varchar" length="500" jt="12" />
+			<column name="public_Key" type="varchar" length="500" jt="12" />
+			<index name="Pk_tbl_User" unique="PRIMARY_KEY" >
+				<column name="id_User" />
+			</index>
+		</table>
+		<table name="tbl_User_Service" >
+			<column name="id_User_Service" type="int" jt="4" mandatory="y" autoincrement="y" />
+			<column name="name" type="varchar" length="500" jt="12" mandatory="y" />
+			<column name="token" type="varchar" length="500" jt="12" mandatory="y" />
+			<column name="fk_User" type="int" jt="4" mandatory="y" />
+			<column name="fk_Service" type="int" jt="4" mandatory="y" />
+			<index name="Pk_tbl_User_Service" unique="PRIMARY_KEY" >
+				<column name="id_User_Service" />
+			</index>
+			<index name="idx_tbl_User_Service" unique="NORMAL" >
+				<column name="fk_Service" />
+			</index>
+			<index name="idx_tbl_User_Service_0" unique="NORMAL" >
+				<column name="fk_User" />
+			</index>
+			<fk name="fk_tbl_user_service" to_schema="dbo" to_table="tbl_Service" >
+				<fk_column name="fk_Service" pk="id_Service" />
+			</fk>
+			<fk name="fk_tbl_user_service_tbl_user" to_schema="dbo" to_table="tbl_User" >
+				<fk_column name="fk_User" pk="id_User" />
+			</fk>
+		</table>
+	</schema>
+	<connector name="SqlServer" database="SqlServer" driver_class="net.sourceforge.jtds.jdbc.Driver" driver_jar="jtds-1.3.1.jar" driver_desc="Windows Authentication" host="prettysecurecloud.database.windows.net" port="1433" instance="PrettySecureCloud" user="Overlord" />
+	<layout name="Default Layout" id="Layout_36319493" show_relation="columns" >
+		<entity schema="dbo" name="tbl_User" color="c1d8ee" x="45" y="75" />
+		<entity schema="dbo" name="tbl_Service" color="c1d8ee" x="405" y="60" />
+		<entity schema="dbo" name="tbl_User_Service" color="c1d8ee" x="210" y="45" />
+	</layout>
+</project>
