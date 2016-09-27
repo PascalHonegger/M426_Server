@@ -10,7 +10,7 @@ namespace PrettySecureCloud
 		bool UsernameUnique(string username);
 
 		[OperationContract]
-		bool EmailUnique(string username);
+		bool EmailUnique(string mail);
 
 		[OperationContract]
 		void Register(string username, string mail, string password);

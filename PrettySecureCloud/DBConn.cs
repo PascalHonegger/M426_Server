@@ -5,10 +5,14 @@ namespace PrettySecureCloud
 {
 	public static class DbConn
 	{
-		private static SqlConnection _connection;
+		static DbConn()
+		{
+			Connection = new SqlConnection(Settings.Default.ConnectionString);
 
-		private static SqlConnection Connection
-			=> _connection ?? (_connection = new SqlConnection(Settings.Default.ConnectionString));
+			Connection.Open();
+		}
+
+		private static SqlConnection Connection	{ get; }
 
 		public static SqlCommand Command => Connection.CreateCommand();
 	}

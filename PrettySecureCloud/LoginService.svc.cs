@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
@@ -9,81 +10,151 @@ namespace PrettySecureCloud
 	{
 		private static readonly SqlCommand InsertUser = DbConn.Command;
 		private static readonly SqlCommand LoginUser = DbConn.Command;
+		private static readonly SqlCommand CheckEMail = DbConn.Command;
+		private static readonly SqlCommand UpdateUser = DbConn.Command;
+		private static readonly SqlCommand GetServiceTypes = DbConn.Command;
+
 
 
 		public LoginService()
 		{
 			InsertUser.CommandText =
-				"insert into tbl_user(username, e-mail, password, publickey, privatkey) values(@username, @e-mail, @password, @publikey, @privatkey)";
-			LoginUser.CommandText = "select * from tbl_user where username = @username";
+				"insert into tbl_User(username, email, password, public_Key, privat_Key) values(@username, @email, @password, @publi_Key, @privat_Key)";
+			LoginUser.CommandText = "select * from tbl_User where username = @username";
+			CheckEMail.CommandText = "select * from tbl_User where email = @email";
+			UpdateUser.CommandText = "update tbl_User set username=@username, email=@email, public_Key=@public_Key, private_Key=@private_Key where id_User = @iduser";
+			GetServiceTypes.CommandText = "select * from tbl_Service";
 
 			InsertUser.Parameters.Add("@username", SqlDbType.NText);
-			InsertUser.Parameters.Add("@e-mail", SqlDbType.NText);
+			InsertUser.Parameters.Add("@email", SqlDbType.NText);
 			InsertUser.Parameters.Add("@password", SqlDbType.NText);
-			InsertUser.Parameters.Add("@publickey", SqlDbType.NText);
-			InsertUser.Parameters.Add("@privatekey", SqlDbType.NText);
+			InsertUser.Parameters.Add("@public_Key", SqlDbType.NText);
+			InsertUser.Parameters.Add("@private_Key", SqlDbType.NText);
 
 			LoginUser.Parameters.Add("@username", SqlDbType.NText);
+
+			CheckEMail.Parameters.Add("@email", SqlDbType.NText);
+
+			UpdateUser.Parameters.Add("@username", SqlDbType.NText);
+			UpdateUser.Parameters.Add("@email", SqlDbType.NText);
+			UpdateUser.Parameters.Add("@iduser", SqlDbType.Int);
+			UpdateUser.Parameters.Add("@public_Key", SqlDbType.NText);
+			UpdateUser.Parameters.Add("@private_Key", SqlDbType.NText);
 		}
 
 		public bool UsernameUnique(string username)
 		{
-			//TODO
-			return true;
+			LoginUser.Parameters["@username"].Value = username;
+
+			LoginUser.Prepare();
+
+			SqlDataReader reader = LoginUser.ExecuteReader();
+			if (reader.HasRows)
+			{
+				return false;
+			}
+			else
+			{
+				return true;
+			}
 		}
 
-		public bool EmailUnique(string username)
+		public bool EmailUnique(string mail)
 		{
-			return false;
+			CheckEMail.Parameters["@email"].Value = mail;
+
+			CheckEMail.Prepare();
+
+			SqlDataReader reader = CheckEMail.ExecuteReader();
+			if (reader.HasRows)
+			{
+				return false;
+			}
+			else
+			{
+				return true;
+			}
 		}
 
 		public void Register(string username, string mail, string password)
 		{
-			//TODO
+			if (!EmailUnique(mail)) throw new ArgumentException("The given E-Mail Address is already registered");
+			if(!UsernameUnique(username)) throw new ArgumentException("The given Username is already in use");
+
+
+			InsertUser.Parameters["@username"].Value = username;
+			InsertUser.Parameters["@email"].Value = mail;
+			InsertUser.Parameters["@password"].Value = password;
+			InsertUser.Parameters["@public_Key"].Value = "TestKey";
+			InsertUser.Parameters["@public_Key"].Value = "TestKey";
+
+			InsertUser.Prepare();
+
+			InsertUser.ExecuteNonQuery();
 		}
 
 		public User Login(string username, string password)
 		{
-			var serviceTypeDropbox = LoadAllServices().First();
+			LoginUser.Parameters["@username"].Value = username;
 
-			return new User
+			LoginUser.Prepare();
+
+			SqlDataReader reader = LoginUser.ExecuteReader();
+
+			if (reader.HasRows)
 			{
-				Id = 42,
-				Username = username,
-				Services = new List<CloudService>
+				var pw = (string)reader["password"];
+
+				if (pw == password) // TODO: hash pw from client
 				{
-					new CloudService
+					var user = new User
 					{
-						LoginToken = "QWERASDFQWERJAKVJASD",
-						Name = "Privat DropBox",
-						Type = serviceTypeDropbox
-					},
-					new CloudService
-					{
-						LoginToken = "asdfadsfjqerjküapsfdasdf",
-						Name = "Geschäft DropBox",
-						Type = serviceTypeDropbox
-					}
+						Id = (int)reader["id_User"],
+						Username = (string)reader["username"],
+						Mail = (string)reader["email"],
+						PrivateKey = (string)reader["private_Key"],
+						PublicKey = (string)reader["public_Key"]
+					};
+
+					return user;
 				}
-			};
+				else
+				{
+					throw new ArgumentException("Password or Username is wrong");
+				}
+			}
+			else
+			{
+				throw new ArgumentException("Passwor or Username is wrong");
+			}
 		}
 
-		public void Update(User newUserData)
+		public void Update(User newUserData) //TODO: normal params
 		{
-			//TODO
+			UpdateUser.Parameters["@username"].Value = newUserData.Username;
+			UpdateUser.Parameters["@email"].Value = newUserData.Mail;
+			UpdateUser.Parameters["@private_Key"].Value = newUserData.PrivateKey;
+			UpdateUser.Parameters["@public_Key"].Value = newUserData.PublicKey;
+			UpdateUser.Parameters["@iduser"].Value = newUserData.Id;
+
+			UpdateUser.Prepare();
+
+			UpdateUser.ExecuteNonQuery();
 		}
 
 		public IEnumerable<ServiceType> LoadAllServices()
 		{
-			return new List<ServiceType>
+			GetServiceTypes.Prepare();
+
+			SqlDataReader reader = GetServiceTypes.ExecuteReader();
+
+			var ServiceList = new List<ServiceType>();
+			
+			foreach(SqlDataReader value in reader)
 			{
-				new ServiceType
-				{
-					Key = "XASDFQER",
-					Name = "DropBox",
-					Secret = "1324185678456245134134123"
-				}
-			};
-		}
+				ServiceList.Add(new ServiceType() { Key = (string)value["appkey"], Name = (string)value["name"], Secret = (string)value["appsecret"] });
+			}
+
+			return ServiceList;
 	}
 }
