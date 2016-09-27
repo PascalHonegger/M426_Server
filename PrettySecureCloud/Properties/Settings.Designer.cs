@@ -26,9 +26,8 @@ namespace PrettySecureCloud.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
-        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=http://prettysecurecloud.database.windows.net;Initial Catalog=PrettyS" +
-            "ecureCloudDB;Persist Security Info=True;User ID=Overlord;Password=PrettySecureCl" +
-            "oudDB")]
+        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=prettysecurecloud.database.windows.net;Initial Catalog=PrettySecureCl" +
+            "oud;Persist Security Info=True;User ID=Overlord;Password=P@ssw0rd")]
         public string ConnectionString {
             get {
                 return ((string)(this["ConnectionString"]));

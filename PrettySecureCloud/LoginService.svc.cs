@@ -2,159 +2,139 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
 
 namespace PrettySecureCloud
 {
 	public class LoginService : ILoginService
 	{
-		private static readonly SqlCommand InsertUser = DbConn.Command;
-		private static readonly SqlCommand LoginUser = DbConn.Command;
-		private static readonly SqlCommand CheckEMail = DbConn.Command;
-		private static readonly SqlCommand UpdateUser = DbConn.Command;
-		private static readonly SqlCommand GetServiceTypes = DbConn.Command;
-
-
+		private readonly SqlCommand _insertUser = DbConn.Command;
+		private readonly SqlCommand _loadUserFromName = DbConn.Command;
+		private readonly SqlCommand _loadUserFromEmail = DbConn.Command;
+		private readonly SqlCommand _updateUser = DbConn.Command;
+		private readonly SqlCommand _getServiceTypes = DbConn.Command;
 
 		public LoginService()
 		{
-			InsertUser.CommandText =
-				"insert into tbl_User(username, email, password, public_Key, privat_Key) values(@username, @email, @password, @publi_Key, @privat_Key)";
-			LoginUser.CommandText = "select * from tbl_User where username = @username";
-			CheckEMail.CommandText = "select * from tbl_User where email = @email";
-			UpdateUser.CommandText = "update tbl_User set username=@username, email=@email, public_Key=@public_Key, private_Key=@private_Key where id_User = @iduser";
-			GetServiceTypes.CommandText = "select * from tbl_Service";
+			_insertUser.CommandText =
+				"insert into tbl_User(username, email, password, public_Key, private_Key) values(@username, @email, @password, @public_Key, @private_Key)";
+			_loadUserFromName.CommandText = "select * from tbl_User where username = @username";
+			_loadUserFromEmail.CommandText = "select * from tbl_User where email = @email";
+			_updateUser.CommandText =
+				"update tbl_User set username=@username, email=@email, public_Key=@public_Key, private_Key=@private_Key where id_User = @iduser";
+			_getServiceTypes.CommandText = "select * from tbl_Service";
 
-			InsertUser.Parameters.Add("@username", SqlDbType.NText);
-			InsertUser.Parameters.Add("@email", SqlDbType.NText);
-			InsertUser.Parameters.Add("@password", SqlDbType.NText);
-			InsertUser.Parameters.Add("@public_Key", SqlDbType.NText);
-			InsertUser.Parameters.Add("@private_Key", SqlDbType.NText);
+			_insertUser.Parameters.Add("@username", SqlDbType.VarChar);
+			_insertUser.Parameters.Add("@email", SqlDbType.VarChar);
+			_insertUser.Parameters.Add("@password", SqlDbType.VarChar);
+			_insertUser.Parameters.Add("@public_Key", SqlDbType.VarChar);
+			_insertUser.Parameters.Add("@private_Key", SqlDbType.VarChar);
 
-			LoginUser.Parameters.Add("@username", SqlDbType.NText);
+			_loadUserFromName.Parameters.Add("@username", SqlDbType.VarChar);
 
-			CheckEMail.Parameters.Add("@email", SqlDbType.NText);
+			_loadUserFromEmail.Parameters.Add("@email", SqlDbType.VarChar);
 
-			UpdateUser.Parameters.Add("@username", SqlDbType.NText);
-			UpdateUser.Parameters.Add("@email", SqlDbType.NText);
-			UpdateUser.Parameters.Add("@iduser", SqlDbType.Int);
-			UpdateUser.Parameters.Add("@public_Key", SqlDbType.NText);
-			UpdateUser.Parameters.Add("@private_Key", SqlDbType.NText);
+			_updateUser.Parameters.Add("@username", SqlDbType.VarChar);
+			_updateUser.Parameters.Add("@email", SqlDbType.VarChar);
+			_updateUser.Parameters.Add("@iduser", SqlDbType.Int);
+			_updateUser.Parameters.Add("@public_Key", SqlDbType.VarChar);
+			_updateUser.Parameters.Add("@private_Key", SqlDbType.VarChar);
 		}
 
 		public bool UsernameUnique(string username)
 		{
-			LoginUser.Parameters["@username"].Value = username;
+			_loadUserFromName.Parameters["@username"].Value = username;
 
-			LoginUser.Prepare();
+			var reader = _loadUserFromName.ExecuteReader();
+			var unique = !reader.HasRows;
+			reader.Close();
 
-			SqlDataReader reader = LoginUser.ExecuteReader();
-			if (reader.HasRows)
-			{
-				return false;
-			}
-			else
-			{
-				return true;
-			}
+			return unique;
 		}
 
 		public bool EmailUnique(string mail)
 		{
-			CheckEMail.Parameters["@email"].Value = mail;
+			_loadUserFromEmail.Parameters["@email"].Value = mail;
 
-			CheckEMail.Prepare();
+			var reader = _loadUserFromEmail.ExecuteReader();
+			var unique = !reader.HasRows;
+			reader.Close();
 
-			SqlDataReader reader = CheckEMail.ExecuteReader();
-			if (reader.HasRows)
-			{
-				return false;
-			}
-			else
-			{
-				return true;
-			}
+			return unique;
 		}
 
 		public void Register(string username, string mail, string password)
 		{
 			if (!EmailUnique(mail)) throw new ArgumentException("The given E-Mail Address is already registered");
-			if(!UsernameUnique(username)) throw new ArgumentException("The given Username is already in use");
+			if (!UsernameUnique(username)) throw new ArgumentException("The given Username is already in use");
 
 
-			InsertUser.Parameters["@username"].Value = username;
-			InsertUser.Parameters["@email"].Value = mail;
-			InsertUser.Parameters["@password"].Value = password;
-			InsertUser.Parameters["@public_Key"].Value = "TestKey";
-			InsertUser.Parameters["@public_Key"].Value = "TestKey";
+			_insertUser.Parameters["@username"].Value = username;
+			_insertUser.Parameters["@email"].Value = mail;
+			_insertUser.Parameters["@password"].Value = password;
+			_insertUser.Parameters["@public_Key"].Value = "TestKey";
+			_insertUser.Parameters["@private_Key"].Value = "TestKey";
 
-			InsertUser.Prepare();
-
-			InsertUser.ExecuteNonQuery();
+			_insertUser.ExecuteNonQuery();
 		}
 
 		public User Login(string username, string password)
 		{
-			LoginUser.Parameters["@username"].Value = username;
+			_loadUserFromName.Parameters["@username"].Value = username;
 
-			LoginUser.Prepare();
+			var reader = _loadUserFromName.ExecuteReader();
 
-			SqlDataReader reader = LoginUser.ExecuteReader();
+			if (!reader.HasRows) throw new ArgumentException("Passwor or Username is wrong");
 
-			if (reader.HasRows)
+			reader.Read();
+			var pw = (string) reader["password"];
+
+			if (!Equals(pw, password)) throw new ArgumentException("Password or Username is wrong");
+			var user = new User
 			{
-				var pw = (string)reader["password"];
+				Id = (int) reader["id_User"],
+				Username = (string) reader["username"],
+				Mail = (string) reader["email"],
+				PrivateKey = (string) reader["private_Key"],
+				PublicKey = (string) reader["public_Key"],
+				Services = new List<CloudService>()
+			};
 
-				if (pw == password) // TODO: hash pw from client
-				{
-					var user = new User
-					{
-						Id = (int)reader["id_User"],
-						Username = (string)reader["username"],
-						Mail = (string)reader["email"],
-						PrivateKey = (string)reader["private_Key"],
-						PublicKey = (string)reader["public_Key"]
-					};
+			reader.Close();
 
-					return user;
-				}
-				else
-				{
-					throw new ArgumentException("Password or Username is wrong");
-				}
-			}
-			else
-			{
-				throw new ArgumentException("Passwor or Username is wrong");
-			}
+			return user;
 		}
 
 		public void Update(User newUserData) //TODO: normal params
 		{
-			UpdateUser.Parameters["@username"].Value = newUserData.Username;
-			UpdateUser.Parameters["@email"].Value = newUserData.Mail;
-			UpdateUser.Parameters["@private_Key"].Value = newUserData.PrivateKey;
-			UpdateUser.Parameters["@public_Key"].Value = newUserData.PublicKey;
-			UpdateUser.Parameters["@iduser"].Value = newUserData.Id;
+			_updateUser.Parameters["@username"].Value = newUserData.Username;
+			_updateUser.Parameters["@email"].Value = newUserData.Mail;
+			_updateUser.Parameters["@private_Key"].Value = newUserData.PrivateKey;
+			_updateUser.Parameters["@public_Key"].Value = newUserData.PublicKey;
+			_updateUser.Parameters["@iduser"].Value = newUserData.Id;
 
-			UpdateUser.Prepare();
-
-			UpdateUser.ExecuteNonQuery();
+			_updateUser.ExecuteNonQuery();
 		}
 
 		public IEnumerable<ServiceType> LoadAllServices()
 		{
-			GetServiceTypes.Prepare();
+			var reader = _getServiceTypes.ExecuteReader();
 
-			SqlDataReader reader = GetServiceTypes.ExecuteReader();
+			var serviceList = new List<ServiceType>();
 
-			var ServiceList = new List<ServiceType>();
-			
-			foreach(SqlDataReader value in reader)
+			//TODO Works?
+			foreach (SqlDataReader value in reader)
 			{
-				ServiceList.Add(new ServiceType() { Key = (string)value["appkey"], Name = (string)value["name"], Secret = (string)value["appsecret"] });
+				serviceList.Add(new ServiceType()
+				{
+					Key = (string) value["appkey"],
+					Name = (string) value["name"],
+					Secret = (string) value["appsecret"]
+				});
 			}
 
-			return ServiceList;
+			reader.Close();
+
+			return serviceList;
+		}
 	}
 }
