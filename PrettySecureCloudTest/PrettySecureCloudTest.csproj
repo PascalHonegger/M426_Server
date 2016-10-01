@@ -80,6 +80,7 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="Security\BCryptHasherTest.cs" />
     <Compile Include="LoginServiceTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

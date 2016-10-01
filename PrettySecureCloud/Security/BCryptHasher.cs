@@ -19,7 +19,7 @@
 		/// <param name="hash">Hash (saved in database)</param>
 		/// <param name="password">Password (provided by user)</param>
 		/// <returns>True, if the password entered matches the hash</returns>
-		public bool Validate(string password, string hash)
+		public bool Verify(string password, string hash)
 		{
 			return BCrypt.Net.BCrypt.Verify(password, hash);
 		}

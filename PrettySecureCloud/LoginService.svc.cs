@@ -158,8 +158,8 @@ namespace PrettySecureCloud
 
 			var hash = (string) reader["password"];
 			
-			//Validate Password
-			if (!_passwordHasher.Validate(password, hash)) wrongLogin();
+			//Verify Password
+			if (!_passwordHasher.Verify(password, hash)) wrongLogin();
 
 			var user = new User
 			{

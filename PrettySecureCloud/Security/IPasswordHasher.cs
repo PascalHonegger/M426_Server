@@ -15,6 +15,6 @@
 		/// <param name="hash">Hash (saved in database)</param>
 		/// <param name="password">Password (provided by user)</param>
 		/// <returns>True, if the password entered matches the hash</returns>
-		bool Validate(string password, string hash);
+		bool Verify(string password, string hash);
 	}
 }
