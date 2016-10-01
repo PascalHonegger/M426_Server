@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using PrettySecureCloud.Exceptions;
 
 namespace PrettySecureCloud
 {
@@ -83,12 +84,19 @@ namespace PrettySecureCloud
 
 			var reader = _loadUserFromName.ExecuteReader();
 
-			if (!reader.HasRows) throw new ArgumentException("Passwor or Username is wrong");
+			//Reader needs to be closed in case there is an exception
+			Action wrongLogin = () =>
+			{
+				reader.Close();
+				throw new WrongCredentialsException();
+			};
+
+			if (!reader.HasRows) wrongLogin();
 
 			reader.Read();
 			var pw = (string) reader["password"];
 
-			if (!Equals(pw, password)) throw new ArgumentException("Password or Username is wrong");
+			if (!Equals(pw, password)) wrongLogin();
 			var user = new User
 			{
 				Id = (int) reader["id_User"],
