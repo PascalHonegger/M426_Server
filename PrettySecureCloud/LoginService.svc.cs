@@ -65,8 +65,8 @@ namespace PrettySecureCloud
 
 		public void Register(string username, string mail, string password)
 		{
-			if (!EmailUnique(mail)) throw new ArgumentException("The given E-Mail Address is already registered");
-			if (!UsernameUnique(username)) throw new ArgumentException("The given Username is already in use");
+			if (!EmailUnique(mail)) throw new UserAlreadyExistsException("E-Mail");
+			if (!UsernameUnique(username)) throw new UserAlreadyExistsException("Benutzername");
 
 
 			_insertUser.Parameters["@username"].Value = username;

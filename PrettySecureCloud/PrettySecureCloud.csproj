@@ -55,6 +55,7 @@
   <ItemGroup>
     <Compile Include="DbConn.cs" />
     <Compile Include="CloudService.cs" />
+    <Compile Include="Exceptions\UserAlreadyExistsException.cs" />
     <Compile Include="Exceptions\WrongCredentialsException.cs" />
     <Compile Include="LoginService.svc.cs">
       <DependentUpon>LoginService.svc</DependentUpon>

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Linq;
 using NUnit.Framework;
 using PrettySecureCloud;
+using PrettySecureCloud.Exceptions;
 
 namespace PrettySecureCloudTest
 {
@@ -30,8 +30,10 @@ namespace PrettySecureCloudTest
 				foreach (var service in tempUser.Services)
 				{
 					_deleteServicesFromUserCommand.CommandText = $"DELETE FROM tbl_User_Service WHERE fk_User={service.Id}";
+					_deleteServicesFromUserCommand.ExecuteNonQuery();
 				}
 				_deleteUserCommand.CommandText = $"DELETE FROM tbl_User WHERE id_User={tempUser.Id}";
+				_deleteUserCommand.ExecuteNonQuery();
 			}
 		}
 
@@ -44,20 +46,19 @@ namespace PrettySecureCloudTest
 			get
 			{
 				if (_unitUnderTest == null) return null;
+
 				var name = RandomString;
 				var pwd = RandomString;
+
 				_unitUnderTest.Register(name, RandomString, pwd);
 				var randomUser = _unitUnderTest.Login(name, pwd);
+
 				_temporaryUsers.Add(randomUser);
 				return randomUser;
 			}
 		}
 
-		private const string Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-		private string RandomString => new string(Enumerable.Repeat(Chars, 20).Select(s => s[_random.Next(s.Length)]).ToArray());
-
-		private readonly Random _random = new Random();
+		private static string RandomString => Guid.NewGuid().ToString();
 
 		[Test]
 		public void TestUsernameUnique()
@@ -83,6 +84,24 @@ namespace PrettySecureCloudTest
 
 			//Assert
 			Assert.That(unique, Is.False);
+		}
+
+		[Test]
+		public void RegisterThrowsAnExceptionIfUserAlreadyExists()
+		{
+			//Arrange
+			var existingUser = TemporaryUser;
+
+			//Act & Assert
+			Assert.Throws<UserAlreadyExistsException>(() => _unitUnderTest.Register(existingUser.Username, RandomString, RandomString));
+			Assert.Throws<UserAlreadyExistsException>(() => _unitUnderTest.Register(RandomString, existingUser.Mail, RandomString));
+		}
+
+		[Test]
+		public void LoginThrowsAnExceptionWithWrongCredentials()
+		{
+			//Act & Assert
+			Assert.Throws<WrongCredentialsException>(() => _unitUnderTest.Login(RandomString, RandomString));
 		}
 	}
 }
