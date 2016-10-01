@@ -1,52 +1,114 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using PrettySecureCloud.Exceptions;
+using PrettySecureCloud.Model;
+using PrettySecureCloud.Security;
 
 namespace PrettySecureCloud
 {
 	public class LoginService : ILoginService
 	{
-		private readonly SqlCommand _insertUser = DbConn.Command;
-		private readonly SqlCommand _loadUserFromName = DbConn.Command;
-		private readonly SqlCommand _loadUserFromEmail = DbConn.Command;
-		private readonly SqlCommand _updateUser = DbConn.Command;
-		private readonly SqlCommand _getServiceTypes = DbConn.Command;
+		private readonly IPasswordHasher _passwordHasher;
+
+		private readonly IDbCommand _insertUser;
+		private readonly IDbCommand _loadUserFromName;
+		private readonly IDbCommand _loadUserFromEmail;
+		private readonly IDbCommand _updateUser;
+		private readonly IDbCommand _getServiceTypes;
 
 		public LoginService()
 		{
+			_passwordHasher = new BCryptHasher();
+			IDatabaseConnection databaseConnection = new MsSqlConnection();
+
+			_insertUser = databaseConnection.Command;
+			_loadUserFromName = databaseConnection.Command;
+			_loadUserFromEmail = databaseConnection.Command;
+			_updateUser = databaseConnection.Command;
+			_getServiceTypes = databaseConnection.Command;
+
+			//Insert user
 			_insertUser.CommandText =
 				"insert into tbl_User(username, email, password, public_Key, private_Key) values(@username, @email, @password, @public_Key, @private_Key)";
+
+			var insertUserParam = _insertUser.CreateParameter();
+			insertUserParam.ParameterName = "@username";
+			insertUserParam.DbType = DbType.String;
+			_insertUser.Parameters.Add(insertUserParam);
+
+			insertUserParam = _insertUser.CreateParameter();
+			insertUserParam.ParameterName = "@email";
+			insertUserParam.DbType = DbType.String;
+			_insertUser.Parameters.Add(insertUserParam);
+
+			insertUserParam = _insertUser.CreateParameter();
+			insertUserParam.ParameterName = "@password";
+			insertUserParam.DbType = DbType.String;
+			_insertUser.Parameters.Add(insertUserParam);
+
+			insertUserParam = _insertUser.CreateParameter();
+			insertUserParam.ParameterName = "@public_Key";
+			insertUserParam.DbType = DbType.String;
+			_insertUser.Parameters.Add(insertUserParam);
+
+			insertUserParam = _insertUser.CreateParameter();
+			insertUserParam.ParameterName = "@private_Key";
+			insertUserParam.DbType = DbType.String;
+			_insertUser.Parameters.Add(insertUserParam);
+
+			//Load user from name
 			_loadUserFromName.CommandText = "select * from tbl_User where username = @username";
+
+			var loadUserFromNameParam = _loadUserFromName.CreateParameter();
+			loadUserFromNameParam.ParameterName = "@username";
+			loadUserFromNameParam.DbType = DbType.String;
+			_loadUserFromName.Parameters.Add(loadUserFromNameParam);
+
+			//Load user from email
 			_loadUserFromEmail.CommandText = "select * from tbl_User where email = @email";
+
+			var loadUserFromEmailParam = _loadUserFromEmail.CreateParameter();
+			loadUserFromEmailParam.ParameterName = "@email";
+			loadUserFromEmailParam.DbType = DbType.String;
+			_loadUserFromEmail.Parameters.Add(loadUserFromEmailParam);
+
 			_updateUser.CommandText =
 				"update tbl_User set username=@username, email=@email, public_Key=@public_Key, private_Key=@private_Key where id_User = @iduser";
 			_getServiceTypes.CommandText = "select * from tbl_Service";
 
-			_insertUser.Parameters.Add("@username", SqlDbType.VarChar);
-			_insertUser.Parameters.Add("@email", SqlDbType.VarChar);
-			_insertUser.Parameters.Add("@password", SqlDbType.VarChar);
-			_insertUser.Parameters.Add("@public_Key", SqlDbType.VarChar);
-			_insertUser.Parameters.Add("@private_Key", SqlDbType.VarChar);
+			var updateUserParam = _updateUser.CreateParameter();
+			updateUserParam.ParameterName = "@username";
+			updateUserParam.DbType = DbType.String;
+			_updateUser.Parameters.Add(updateUserParam);
 
-			_loadUserFromName.Parameters.Add("@username", SqlDbType.VarChar);
+			updateUserParam = _updateUser.CreateParameter();
+			updateUserParam.ParameterName = "@email";
+			updateUserParam.DbType = DbType.String;
+			_updateUser.Parameters.Add(updateUserParam);
 
-			_loadUserFromEmail.Parameters.Add("@email", SqlDbType.VarChar);
+			updateUserParam = _updateUser.CreateParameter();
+			updateUserParam.ParameterName = "@iduser";
+			updateUserParam.DbType = DbType.Int32;
+			_updateUser.Parameters.Add(updateUserParam);
 
-			_updateUser.Parameters.Add("@username", SqlDbType.VarChar);
-			_updateUser.Parameters.Add("@email", SqlDbType.VarChar);
-			_updateUser.Parameters.Add("@iduser", SqlDbType.Int);
-			_updateUser.Parameters.Add("@public_Key", SqlDbType.VarChar);
-			_updateUser.Parameters.Add("@private_Key", SqlDbType.VarChar);
+			updateUserParam = _updateUser.CreateParameter();
+			updateUserParam.ParameterName = "@public_Key";
+			updateUserParam.DbType = DbType.String;
+			_updateUser.Parameters.Add(updateUserParam);
+
+			updateUserParam = _updateUser.CreateParameter();
+			updateUserParam.ParameterName = "@private_Key";
+			updateUserParam.DbType = DbType.String;
+			_updateUser.Parameters.Add(updateUserParam);
 		}
 
 		public bool UsernameUnique(string username)
 		{
-			_loadUserFromName.Parameters["@username"].Value = username;
+			((IDbDataParameter)_loadUserFromName.Parameters["@username"]).Value = username;
 
 			var reader = _loadUserFromName.ExecuteReader();
-			var unique = !reader.HasRows;
+			var unique = !reader.Read();
 			reader.Close();
 
 			return unique;
@@ -54,10 +116,10 @@ namespace PrettySecureCloud
 
 		public bool EmailUnique(string mail)
 		{
-			_loadUserFromEmail.Parameters["@email"].Value = mail;
+			((IDbDataParameter)_loadUserFromEmail.Parameters["@email"]).Value = mail;
 
 			var reader = _loadUserFromEmail.ExecuteReader();
-			var unique = !reader.HasRows;
+			var unique = !reader.Read();
 			reader.Close();
 
 			return unique;
@@ -69,18 +131,18 @@ namespace PrettySecureCloud
 			if (!UsernameUnique(username)) throw new UserAlreadyExistsException("Benutzername");
 
 
-			_insertUser.Parameters["@username"].Value = username;
-			_insertUser.Parameters["@email"].Value = mail;
-			_insertUser.Parameters["@password"].Value = password;
-			_insertUser.Parameters["@public_Key"].Value = "TestKey";
-			_insertUser.Parameters["@private_Key"].Value = "TestKey";
+			((IDbDataParameter)_insertUser.Parameters["@username"]).Value = username;
+			((IDbDataParameter)_insertUser.Parameters["@email"]).Value = mail;
+			((IDbDataParameter)_insertUser.Parameters["@password"]).Value = _passwordHasher.CalculateHash(password);
+			((IDbDataParameter)_insertUser.Parameters["@public_Key"]).Value = "TestKey";
+			((IDbDataParameter)_insertUser.Parameters["@private_Key"]).Value = "TestKey";
 
 			_insertUser.ExecuteNonQuery();
 		}
 
 		public User Login(string username, string password)
 		{
-			_loadUserFromName.Parameters["@username"].Value = username;
+			((IDbDataParameter)_loadUserFromName.Parameters["@username"]).Value = username;
 
 			var reader = _loadUserFromName.ExecuteReader();
 
@@ -91,12 +153,14 @@ namespace PrettySecureCloud
 				throw new WrongCredentialsException();
 			};
 
-			if (!reader.HasRows) wrongLogin();
+			//Validate user found
+			if (!reader.Read()) wrongLogin();
 
-			reader.Read();
-			var pw = (string) reader["password"];
+			var hash = (string) reader["password"];
+			
+			//Validate Password
+			if (!_passwordHasher.Validate(password, hash)) wrongLogin();
 
-			if (!Equals(pw, password)) wrongLogin();
 			var user = new User
 			{
 				Id = (int) reader["id_User"],
@@ -114,11 +178,11 @@ namespace PrettySecureCloud
 
 		public void Update(User newUserData) //TODO: normal params
 		{
-			_updateUser.Parameters["@username"].Value = newUserData.Username;
-			_updateUser.Parameters["@email"].Value = newUserData.Mail;
-			_updateUser.Parameters["@private_Key"].Value = newUserData.PrivateKey;
-			_updateUser.Parameters["@public_Key"].Value = newUserData.PublicKey;
-			_updateUser.Parameters["@iduser"].Value = newUserData.Id;
+			((IDbDataParameter)_updateUser.Parameters["@username"]).Value = newUserData.Username;
+			((IDbDataParameter)_updateUser.Parameters["@email"]).Value = newUserData.Mail;
+			((IDbDataParameter)_updateUser.Parameters["@private_Key"]).Value = newUserData.PrivateKey;
+			((IDbDataParameter)_updateUser.Parameters["@public_Key"]).Value = newUserData.PublicKey;
+			((IDbDataParameter)_updateUser.Parameters["@iduser"]).Value = newUserData.Id;
 
 			_updateUser.ExecuteNonQuery();
 		}
@@ -129,14 +193,13 @@ namespace PrettySecureCloud
 
 			var serviceList = new List<ServiceType>();
 
-			//TODO Works?
-			foreach (SqlDataReader value in reader)
+			while (reader.Read())
 			{
-				serviceList.Add(new ServiceType()
+				serviceList.Add(new ServiceType
 				{
-					Key = (string) value["appkey"],
-					Name = (string) value["name"],
-					Secret = (string) value["appsecret"]
+					Key = (string)reader["appkey"],
+					Name = (string)reader["name"],
+					Secret = (string)reader["appsecret"]
 				});
 			}
 

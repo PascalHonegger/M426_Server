@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using System.Data;
 using NUnit.Framework;
 using PrettySecureCloud;
 using PrettySecureCloud.Exceptions;
+using PrettySecureCloud.Model;
 
 namespace PrettySecureCloudTest
 {
@@ -11,8 +12,16 @@ namespace PrettySecureCloudTest
 	[Category("IntegrationTest")]
 	public class LoginServiceTest
 	{
-		private readonly SqlCommand _deleteUserCommand = DbConn.Command;
-		private readonly SqlCommand _deleteServicesFromUserCommand = DbConn.Command;
+		private readonly IDbCommand _deleteUserCommand;
+		private readonly IDbCommand _deleteServicesFromUserCommand;
+
+		public LoginServiceTest()
+		{
+			var connection = new MsSqlConnection();
+
+			_deleteUserCommand = connection.Command;
+			_deleteServicesFromUserCommand = connection.Command;
+		}
 
 		[SetUp]
 		public void Setup()

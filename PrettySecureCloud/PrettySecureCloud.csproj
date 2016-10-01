@@ -41,6 +41,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="BCrypt.Net, Version=0.1.5073.29922, Culture=neutral, PublicKeyToken=6bcd409ee6bc9292, processorArchitecture=MSIL">
+      <HintPath>..\packages\BCrypt-Official.0.1.109\lib\BCrypt.Net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -53,8 +57,9 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DbConn.cs" />
-    <Compile Include="CloudService.cs" />
+    <Compile Include="Model\IDatabaseConnection.cs" />
+    <Compile Include="Model\MsSqlConnection.cs" />
+    <Compile Include="Model\CloudService.cs" />
     <Compile Include="Exceptions\UserAlreadyExistsException.cs" />
     <Compile Include="Exceptions\WrongCredentialsException.cs" />
     <Compile Include="LoginService.svc.cs">
@@ -67,11 +72,14 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="ServiceType.cs" />
-    <Compile Include="User.cs" />
+    <Compile Include="Model\ServiceType.cs" />
+    <Compile Include="Model\User.cs" />
+    <Compile Include="Security\IPasswordHasher.cs" />
+    <Compile Include="Security\BCryptHasher.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <Content Include="packages.config" />
     <None Include="Properties\PublishProfiles\PrettySecureCloud - Web Deploy.pubxml" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

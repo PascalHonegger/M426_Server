@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace PrettySecureCloud
+namespace PrettySecureCloud.Model
 {
 	[DataContract]
 	public class ServiceType
