@@ -10,6 +10,7 @@ namespace PrettySecureCloud
 	public class LoginService : ILoginService
 	{
 		private readonly IPasswordHasher _passwordHasher;
+		private readonly IKeyEncryptorDecryptor _keyEncryptorDecryptor;
 
 		private readonly IDbCommand _insertUser;
 		private readonly IDbCommand _loadUserFromName;
@@ -20,6 +21,7 @@ namespace PrettySecureCloud
 		public LoginService()
 		{
 			_passwordHasher = new BCryptHasher();
+			_keyEncryptorDecryptor = new RijndaelKeyEncryptorDecryptor();
 			IDatabaseConnection databaseConnection = new MsSqlConnection();
 
 			_insertUser = databaseConnection.Command;
@@ -134,8 +136,8 @@ namespace PrettySecureCloud
 			((IDbDataParameter)_insertUser.Parameters["@username"]).Value = username;
 			((IDbDataParameter)_insertUser.Parameters["@email"]).Value = mail;
 			((IDbDataParameter)_insertUser.Parameters["@password"]).Value = _passwordHasher.CalculateHash(password);
-			((IDbDataParameter)_insertUser.Parameters["@public_Key"]).Value = "TestKey";
-			((IDbDataParameter)_insertUser.Parameters["@private_Key"]).Value = "TestKey";
+			((IDbDataParameter)_insertUser.Parameters["@public_Key"]).Value = _keyEncryptorDecryptor.Encrypt("TestKey", password);
+			((IDbDataParameter)_insertUser.Parameters["@private_Key"]).Value = _keyEncryptorDecryptor.Encrypt("TestKey", password);
 
 			_insertUser.ExecuteNonQuery();
 		}
@@ -166,8 +168,8 @@ namespace PrettySecureCloud
 				Id = (int) reader["id_User"],
 				Username = (string) reader["username"],
 				Mail = (string) reader["email"],
-				PrivateKey = (string) reader["private_Key"],
-				PublicKey = (string) reader["public_Key"],
+				PrivateKey = _keyEncryptorDecryptor.Decrypt((string) reader["private_Key"], password),
+				PublicKey = _keyEncryptorDecryptor.Decrypt((string)reader["public_Key"], password),
 				Services = new List<CloudService>()
 			};
 
