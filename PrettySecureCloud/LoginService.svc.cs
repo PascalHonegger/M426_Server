@@ -16,8 +16,8 @@ namespace PrettySecureCloud
 		private readonly IDbCommand _insertUser;
 		private readonly IDbCommand _loadUserFromName;
 		private readonly IDbCommand _loadUserFromEmail;
-		//TODO Use in update!
-		private readonly IDbCommand _updateUser;
+		private readonly IDbCommand _loadUserFromId;
+		private readonly IDbCommand _changePassword;
 		private readonly IDbCommand _getServiceTypes;
 		private readonly IDbCommand _getServiceByUser;
 
@@ -30,7 +30,8 @@ namespace PrettySecureCloud
 			_insertUser = databaseConnection.Command;
 			_loadUserFromName = databaseConnection.Command;
 			_loadUserFromEmail = databaseConnection.Command;
-			_updateUser = databaseConnection.Command;
+			_loadUserFromId = databaseConnection.Command;
+			_changePassword = databaseConnection.Command;
 			_getServiceTypes = databaseConnection.Command;
 			_getServiceByUser = databaseConnection.Command;
 
@@ -74,35 +75,42 @@ namespace PrettySecureCloud
 			loadUserFromEmailParam.DbType = DbType.String;
 			_loadUserFromEmail.Parameters.Add(loadUserFromEmailParam);
 
-			_updateUser.CommandText =
-				"update tbl_User set username=@username, email=@email, encryptionkey=@encryptionkey where id_User = @iduser";
-			_getServiceTypes.CommandText = "select * from tbl_Service";
+			//Load user from ID
+			_loadUserFromId.CommandText = "select * from tbl_User where id_User = @iduser";
 
-			var updateUserParam = _updateUser.CreateParameter();
-			updateUserParam.ParameterName = "@username";
+			var loadUserFromIdParam = _loadUserFromId.CreateParameter();
+			loadUserFromIdParam.ParameterName = "@iduser";
+			loadUserFromIdParam.DbType = DbType.Int32;
+			_loadUserFromId.Parameters.Add(loadUserFromIdParam);
+
+			//Change password
+			_changePassword.CommandText =
+				"update tbl_User set password=@password, encryptionkey=@encryptionkey where id_User = @iduser";
+
+			var updateUserParam = _changePassword.CreateParameter();
+			updateUserParam.ParameterName = "@password";
 			updateUserParam.DbType = DbType.String;
-			_updateUser.Parameters.Add(updateUserParam);
+			_changePassword.Parameters.Add(updateUserParam);
 
-			updateUserParam = _updateUser.CreateParameter();
-			updateUserParam.ParameterName = "@email";
-			updateUserParam.DbType = DbType.String;
-			_updateUser.Parameters.Add(updateUserParam);
-
-			updateUserParam = _updateUser.CreateParameter();
+			updateUserParam = _changePassword.CreateParameter();
 			updateUserParam.ParameterName = "@iduser";
 			updateUserParam.DbType = DbType.Int32;
-			_updateUser.Parameters.Add(updateUserParam);
+			_changePassword.Parameters.Add(updateUserParam);
 
-			updateUserParam = _updateUser.CreateParameter();
+			updateUserParam = _changePassword.CreateParameter();
 			updateUserParam.ParameterName = "@encryptionkey";
 			updateUserParam.DbType = DbType.Binary;
-			_updateUser.Parameters.Add(updateUserParam);
+			_changePassword.Parameters.Add(updateUserParam);
 
+			//Load services from a specified user
 			_getServiceByUser.CommandText = "select * from tbl_User_Service where fk_User=@iduser";
 			var getServiceByUserParam = _getServiceByUser.CreateParameter();
 			getServiceByUserParam.ParameterName = "@iduser";
 			getServiceByUserParam.DbType = DbType.Int32;
 			_getServiceByUser.Parameters.Add(getServiceByUserParam);
+
+			//Load all servicetypes
+			_getServiceTypes.CommandText = "select * from tbl_Service";
 		}
 
 		/// <summary>
@@ -207,11 +215,37 @@ namespace PrettySecureCloud
 		/// <summary>
 		///     Update the stored password
 		/// </summary>
+		/// <param name="userId">User</param>
 		/// <param name="currentPassword">Current (old) cleartext password</param>
 		/// <param name="newPassword">New password</param>
-		public void ChangePassword(string currentPassword, string newPassword)
+		public void ChangePassword(int userId, string currentPassword, string newPassword)
 		{
-			throw new NotImplementedException();
+			((IDataParameter) _loadUserFromId.Parameters["@iduser"]).Value = userId;
+			var reader = _loadUserFromId.ExecuteReader();
+
+			Action changeFailed = () =>
+			{
+				reader.Close();
+				throw new WrongCredentialsException();
+			};
+
+			if (!reader.Read()) changeFailed();
+
+			//Wrong current password
+			if (!_passwordHasher.Verify(currentPassword, (string) reader["password"])) changeFailed();
+
+			var currentKey = (byte[]) reader["encryptionkey"];
+
+			reader.Close();
+
+			var unencrypted = _keyEncryptorDecryptor.Decrypt(currentKey, currentPassword);
+
+			((IDataParameter) _changePassword.Parameters["@password"]).Value = _passwordHasher.CalculateHash(newPassword);
+			((IDataParameter) _changePassword.Parameters["@iduser"]).Value = userId;
+			((IDataParameter) _changePassword.Parameters["@encryptionkey"]).Value = _keyEncryptorDecryptor.Encrypt(unencrypted,
+				newPassword);
+
+			_changePassword.ExecuteNonQuery();
 		}
 
 		/// <summary>

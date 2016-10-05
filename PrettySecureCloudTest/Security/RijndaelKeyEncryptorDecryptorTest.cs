@@ -29,7 +29,6 @@ namespace PrettySecureCloudTest.Security
 		public void EncryptedStringCanBeDecrypted()
 		{
 			//Arrange
-
 			var encryptedKey = _unitUnderTest.Encrypt(Encoding.Default.GetBytes(ExampleKey), ExamplePassword);
 
 			//Act

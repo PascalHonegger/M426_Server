@@ -47,10 +47,11 @@ namespace PrettySecureCloud
 		/// <summary>
 		///     Update the stored password
 		/// </summary>
+		/// <param name="userId">User</param>
 		/// <param name="currentPassword">Current (old) cleartext password</param>
 		/// <param name="newPassword">New password</param>
 		[OperationContract]
-		void ChangePassword(string currentPassword, string newPassword);
+		void ChangePassword(int userId, string currentPassword, string newPassword);
 
 		/// <summary>
 		///     Add a service to a specified user

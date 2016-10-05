@@ -51,21 +51,15 @@ namespace PrettySecureCloudTest
 
 		private readonly IList<User> _temporaryUsers = new List<User>();
 
-		private User TemporaryUser
+		private User TemporaryUser => RegisterTemporaryUser(RandomString, RandomString);
+
+		private User RegisterTemporaryUser(string username, string password)
 		{
-			get
-			{
-				if (_unitUnderTest == null) return null;
+			_unitUnderTest.Register(username, RandomString, password);
+			var randomUser = _unitUnderTest.Login(username, password);
 
-				var name = RandomString;
-				var pwd = RandomString;
-
-				_unitUnderTest.Register(name, RandomString, pwd);
-				var randomUser = _unitUnderTest.Login(name, pwd);
-
-				_temporaryUsers.Add(randomUser);
-				return randomUser;
-			}
+			_temporaryUsers.Add(randomUser);
+			return randomUser;
 		}
 
 		private static string RandomString => Guid.NewGuid().ToString();
@@ -112,6 +106,33 @@ namespace PrettySecureCloudTest
 		{
 			//Act & Assert
 			Assert.Throws<WrongCredentialsException>(() => _unitUnderTest.Login(RandomString, RandomString));
+		}
+
+		[Test]
+		public void ChangePasswordThrowsAnExceptionIfPasswordIsWrong()
+		{
+			//Arrange
+			var user = TemporaryUser;
+
+			//Act & Assert
+			Assert.Throws<WrongCredentialsException>(() => _unitUnderTest.ChangePassword(user.Id, "Wrong password", RandomString));
+		}
+
+		[Test]
+		public void LoginWorksAfterPasswordChange()
+		{
+			//Arrange
+			var username = RandomString;
+			var oldPassword = RandomString;
+			var newPassword = RandomString;
+			var createdUser = RegisterTemporaryUser(username, oldPassword);
+			_unitUnderTest.ChangePassword(createdUser.Id, oldPassword, newPassword);
+
+			//Act & Assert
+			Assert.Throws<WrongCredentialsException>(() => _unitUnderTest.Login(username, oldPassword));
+			var loadedUser = _unitUnderTest.Login(username, newPassword);
+
+			Assert.That(loadedUser.EncryptionKey, Is.EqualTo(createdUser.EncryptionKey));
 		}
 	}
 }
