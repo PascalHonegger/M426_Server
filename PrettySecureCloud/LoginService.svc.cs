@@ -10,16 +10,16 @@ namespace PrettySecureCloud
 {
 	public class LoginService : ILoginService
 	{
-		private readonly IPasswordHasher _passwordHasher;
-		private readonly IKeyEncryptorDecryptor _keyEncryptorDecryptor;
+		private readonly IDbCommand _changePassword;
+		private readonly IDbCommand _getServiceByUser;
+		private readonly IDbCommand _getServiceTypes;
 
 		private readonly IDbCommand _insertUser;
-		private readonly IDbCommand _loadUserFromName;
+		private readonly IKeyEncryptorDecryptor _keyEncryptorDecryptor;
 		private readonly IDbCommand _loadUserFromEmail;
 		private readonly IDbCommand _loadUserFromId;
-		private readonly IDbCommand _changePassword;
-		private readonly IDbCommand _getServiceTypes;
-		private readonly IDbCommand _getServiceByUser;
+		private readonly IDbCommand _loadUserFromName;
+		private readonly IPasswordHasher _passwordHasher;
 
 		public LoginService()
 		{
@@ -163,7 +163,6 @@ namespace PrettySecureCloud
 			((IDbDataParameter) _insertUser.Parameters["@username"]).Value = username;
 			((IDbDataParameter) _insertUser.Parameters["@email"]).Value = mail;
 			((IDbDataParameter) _insertUser.Parameters["@password"]).Value = _passwordHasher.CalculateHash(password);
-			//TODO Generate key
 			((IDbDataParameter) _insertUser.Parameters["@encryptionkey"]).Value =
 				_keyEncryptorDecryptor.Encrypt(_keyEncryptorDecryptor.GenerateRandomKey(), password);
 
@@ -283,33 +282,6 @@ namespace PrettySecureCloud
 			throw new NotImplementedException();
 		}
 
-		private IEnumerable<CloudService> LoadServices(int userId)
-		{
-			((IDbDataParameter) _getServiceByUser.Parameters["@iduser"]).Value = userId;
-
-			var allServices = LoadAllServices().ToList();
-
-			var reader = _getServiceByUser.ExecuteReader();
-
-			var result = new List<CloudService>();
-
-			while (reader.Read())
-			{
-				result.Add(
-					new CloudService
-					{
-						Id = (int) reader["id_User_Service"],
-						Name = (string) reader["name"],
-						LoginToken = (string) reader["token"],
-						Type = allServices.First(s => Equals(s.Id, (int) reader["fk_Service"]))
-					});
-			}
-
-			reader.Close();
-
-			return result;
-		}
-
 		/// <summary>
 		///     Load all services to the client who can decide, which servicetypes he supports
 		/// </summary>
@@ -321,7 +293,6 @@ namespace PrettySecureCloud
 			var serviceList = new List<ServiceType>();
 
 			while (reader.Read())
-			{
 				serviceList.Add(new ServiceType
 				{
 					Id = (int) reader["id_Service"],
@@ -329,11 +300,35 @@ namespace PrettySecureCloud
 					Name = (string) reader["name"],
 					Secret = (string) reader["appsecret"]
 				});
-			}
 
 			reader.Close();
 
 			return serviceList;
+		}
+
+		private IEnumerable<CloudService> LoadServices(int userId)
+		{
+			((IDbDataParameter) _getServiceByUser.Parameters["@iduser"]).Value = userId;
+
+			var allServices = LoadAllServices().ToList();
+
+			var reader = _getServiceByUser.ExecuteReader();
+
+			var result = new List<CloudService>();
+
+			while (reader.Read())
+				result.Add(
+					new CloudService
+					{
+						Id = (int) reader["id_User_Service"],
+						Name = (string) reader["name"],
+						LoginToken = (string) reader["token"],
+						Type = allServices.First(s => Equals(s.Id, (int) reader["fk_Service"]))
+					});
+
+			reader.Close();
+
+			return result;
 		}
 	}
 }

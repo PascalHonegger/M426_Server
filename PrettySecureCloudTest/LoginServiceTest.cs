@@ -13,17 +13,6 @@ namespace PrettySecureCloudTest
 	[Category("IntegrationTest")]
 	public class LoginServiceTest
 	{
-		private readonly IDbCommand _deleteUserCommand;
-		private readonly IDbCommand _deleteServicesFromUserCommand;
-
-		public LoginServiceTest()
-		{
-			var connection = new MsSqlConnection();
-
-			_deleteUserCommand = connection.Command;
-			_deleteServicesFromUserCommand = connection.Command;
-		}
-
 		[SetUp]
 		public void Setup()
 		{
@@ -47,6 +36,17 @@ namespace PrettySecureCloudTest
 			}
 		}
 
+		private readonly IDbCommand _deleteUserCommand;
+		private readonly IDbCommand _deleteServicesFromUserCommand;
+
+		public LoginServiceTest()
+		{
+			var connection = new MsSqlConnection();
+
+			_deleteUserCommand = connection.Command;
+			_deleteServicesFromUserCommand = connection.Command;
+		}
+
 		private LoginService _unitUnderTest;
 
 		private readonly IList<User> _temporaryUsers = new List<User>();
@@ -65,50 +65,6 @@ namespace PrettySecureCloudTest
 		private static string RandomString => Guid.NewGuid().ToString();
 
 		[Test]
-		public void TestUsernameUnique()
-		{
-			//Arrange
-			var randomUser = TemporaryUser;
-
-			//Act
-			var unique = _unitUnderTest.UsernameUnique(randomUser.Username);
-
-			//Assert
-			Assert.That(unique, Is.False);
-		}
-
-		[Test]
-		public void TestEmailUnique()
-		{
-			//Arrange
-			var randomUser = TemporaryUser;
-
-			//Act
-			var unique = _unitUnderTest.EmailUnique(randomUser.Mail);
-
-			//Assert
-			Assert.That(unique, Is.False);
-		}
-
-		[Test]
-		public void RegisterThrowsAnExceptionIfUserAlreadyExists()
-		{
-			//Arrange
-			var existingUser = TemporaryUser;
-
-			//Act & Assert
-			Assert.Throws<UserAlreadyExistsException>(() => _unitUnderTest.Register(existingUser.Username, RandomString, RandomString));
-			Assert.Throws<UserAlreadyExistsException>(() => _unitUnderTest.Register(RandomString, existingUser.Mail, RandomString));
-		}
-
-		[Test]
-		public void LoginThrowsAnExceptionWithWrongCredentials()
-		{
-			//Act & Assert
-			Assert.Throws<WrongCredentialsException>(() => _unitUnderTest.Login(RandomString, RandomString));
-		}
-
-		[Test]
 		public void ChangePasswordThrowsAnExceptionIfPasswordIsWrong()
 		{
 			//Arrange
@@ -116,6 +72,13 @@ namespace PrettySecureCloudTest
 
 			//Act & Assert
 			Assert.Throws<WrongCredentialsException>(() => _unitUnderTest.ChangePassword(user.Id, "Wrong password", RandomString));
+		}
+
+		[Test]
+		public void LoginThrowsAnExceptionWithWrongCredentials()
+		{
+			//Act & Assert
+			Assert.Throws<WrongCredentialsException>(() => _unitUnderTest.Login(RandomString, RandomString));
 		}
 
 		[Test]
@@ -133,6 +96,45 @@ namespace PrettySecureCloudTest
 			var loadedUser = _unitUnderTest.Login(username, newPassword);
 
 			Assert.That(loadedUser.EncryptionKey, Is.EqualTo(createdUser.EncryptionKey));
+		}
+
+		[Test]
+		public void RegisterThrowsAnExceptionIfUserAlreadyExists()
+		{
+			//Arrange
+			var existingUser = TemporaryUser;
+
+			//Act & Assert
+			Assert.Throws<UserAlreadyExistsException>(
+				() => _unitUnderTest.Register(existingUser.Username, RandomString, RandomString));
+			Assert.Throws<UserAlreadyExistsException>(
+				() => _unitUnderTest.Register(RandomString, existingUser.Mail, RandomString));
+		}
+
+		[Test]
+		public void TestEmailUnique()
+		{
+			//Arrange
+			var randomUser = TemporaryUser;
+
+			//Act
+			var unique = _unitUnderTest.EmailUnique(randomUser.Mail);
+
+			//Assert
+			Assert.That(unique, Is.False);
+		}
+
+		[Test]
+		public void TestUsernameUnique()
+		{
+			//Arrange
+			var randomUser = TemporaryUser;
+
+			//Act
+			var unique = _unitUnderTest.UsernameUnique(randomUser.Username);
+
+			//Assert
+			Assert.That(unique, Is.False);
 		}
 	}
 }

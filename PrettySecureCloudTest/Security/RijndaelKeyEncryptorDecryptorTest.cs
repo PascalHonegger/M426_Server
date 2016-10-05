@@ -8,9 +8,6 @@ namespace PrettySecureCloudTest.Security
 	[Category("UnitTest")]
 	public class RijndaelKeyEncryptorDecryptorTest
 	{
-		private const string ExamplePassword = "Test P@ssw0rd";
-		private const string ExampleKey = "S4F9AKJSKER8W9AKFADSJK";
-
 		[SetUp]
 		public void Setup()
 		{
@@ -22,6 +19,9 @@ namespace PrettySecureCloudTest.Security
 		{
 			_unitUnderTest = null;
 		}
+
+		private const string ExamplePassword = "Test P@ssw0rd";
+		private const string ExampleKey = "S4F9AKJSKER8W9AKFADSJK";
 
 		private RijndaelKeyEncryptorDecryptor _unitUnderTest;
 

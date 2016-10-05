@@ -13,7 +13,7 @@ namespace PrettySecureCloud.Model
 			Connection.Open();
 		}
 
-		private SqlConnection Connection	{ get; }
+		private SqlConnection Connection { get; }
 
 		public IDbCommand Command => Connection.CreateCommand();
 	}

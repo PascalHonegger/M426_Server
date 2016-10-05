@@ -8,42 +8,15 @@ namespace PrettySecureCloud.Security
 {
 	public class RijndaelKeyEncryptorDecryptor : IKeyEncryptorDecryptor
 	{
-		private readonly SymmetricAlgorithm _cryptoService;
 		private const int CustomKeySize = 16;
+		private readonly SymmetricAlgorithm _cryptoService;
+
+		private readonly Random _random = new Random();
 
 		public RijndaelKeyEncryptorDecryptor()
 		{
 			_cryptoService = new RijndaelManaged();
 		}
-
-		private static byte[] FillUp(IReadOnlyList<byte> bytes)
-		{
-			var result = new byte[CustomKeySize];
-			for (var i = 0; i < 16 - 1; i++)
-			{
-				if (bytes.Count > i)
-				{
-					result[i] = bytes[i];
-				}
-			}
-			return result;
-		}
-
-		private static byte[] Transform(byte[] input, ICryptoTransform cryptoTransform)
-		{
-			using (var stream = new MemoryStream())
-			{
-				using (var cryptoStream = new CryptoStream(stream, cryptoTransform, CryptoStreamMode.Write))
-				{
-					cryptoStream.Write(input, 0, input.Length);
-					cryptoStream.FlushFinalBlock();
-
-					return stream.ToArray();
-				}
-			}
-		}
-
-
 
 
 		public byte[] Encrypt(byte[] key, string password)
@@ -65,6 +38,27 @@ namespace PrettySecureCloud.Security
 			return key;
 		}
 
-		private readonly Random _random = new Random();
+		private static byte[] FillUp(IReadOnlyList<byte> bytes)
+		{
+			var result = new byte[CustomKeySize];
+			for (var i = 0; i < 16 - 1; i++)
+				if (bytes.Count > i)
+					result[i] = bytes[i];
+			return result;
+		}
+
+		private static byte[] Transform(byte[] input, ICryptoTransform cryptoTransform)
+		{
+			using (var stream = new MemoryStream())
+			{
+				using (var cryptoStream = new CryptoStream(stream, cryptoTransform, CryptoStreamMode.Write))
+				{
+					cryptoStream.Write(input, 0, input.Length);
+					cryptoStream.FlushFinalBlock();
+
+					return stream.ToArray();
+				}
+			}
+		}
 	}
 }

@@ -8,7 +8,6 @@ namespace PrettySecureCloud.Exceptions
 	{
 		public WrongCredentialsException() : base("Anmeldedaten nicht gültig")
 		{
-			
 		}
 	}
 }

@@ -1,5 +1,4 @@
 ﻿using NUnit.Framework;
-using PrettySecureCloud;
 using PrettySecureCloud.Security;
 
 namespace PrettySecureCloudTest.Security
@@ -8,8 +7,6 @@ namespace PrettySecureCloudTest.Security
 	[Category("UnitTest")]
 	public class BCryptHasherTest
 	{
-		private const string ExamplePassword = "Test P@ssw0rd";
-
 		[SetUp]
 		public void Setup()
 		{
@@ -21,6 +18,8 @@ namespace PrettySecureCloudTest.Security
 		{
 			_unitUnderTest = null;
 		}
+
+		private const string ExamplePassword = "Test P@ssw0rd";
 
 		private BCryptHasher _unitUnderTest;
 
