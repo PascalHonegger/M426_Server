@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -28,30 +29,16 @@ namespace PrettySecureCloud.Security
 			return result;
 		}
 
-		// vector and key have to match between encryption and decryption
-		private string Encrypt(string text, byte[] key, byte[] vector)
-		{
-			return Transform(text, _cryptoService.CreateEncryptor(key, vector));
-		}
-
-		// vector and key have to match between encryption and decryption
-		private string Decrypt(string text, byte[] key, byte[] vector)
-		{
-			return Transform(text, _cryptoService.CreateDecryptor(key, vector));
-		}
-
-		private static string Transform(string text, ICryptoTransform cryptoTransform)
+		private static byte[] Transform(byte[] input, ICryptoTransform cryptoTransform)
 		{
 			using (var stream = new MemoryStream())
 			{
 				using (var cryptoStream = new CryptoStream(stream, cryptoTransform, CryptoStreamMode.Write))
 				{
-					var input = Encoding.Default.GetBytes(text);
-
 					cryptoStream.Write(input, 0, input.Length);
 					cryptoStream.FlushFinalBlock();
 
-					return Encoding.Default.GetString(stream.ToArray());
+					return stream.ToArray();
 				}
 			}
 		}
@@ -59,16 +46,25 @@ namespace PrettySecureCloud.Security
 
 
 
-		public string Encrypt(string key, string password)
+		public byte[] Encrypt(byte[] key, string password)
 		{
 			var byteArray = FillUp(Encoding.Default.GetBytes(password));
-			return Encrypt(key, byteArray, byteArray);
+			return Transform(key, _cryptoService.CreateEncryptor(byteArray, byteArray));
 		}
 
-		public string Decrypt(string encryptedKey, string password)
+		public byte[] Decrypt(byte[] encryptedKey, string password)
 		{
 			var byteArray = FillUp(Encoding.Default.GetBytes(password));
-			return Decrypt(encryptedKey, byteArray, byteArray);
+			return Transform(encryptedKey, _cryptoService.CreateDecryptor(byteArray, byteArray));
 		}
+
+		public byte[] GenerateRandomKey()
+		{
+			var key = new byte[256];
+			_random.NextBytes(key);
+			return key;
+		}
+
+		private readonly Random _random = new Random();
 	}
 }

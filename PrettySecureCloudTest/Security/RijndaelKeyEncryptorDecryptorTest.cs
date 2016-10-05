@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System.Text;
+using NUnit.Framework;
 using PrettySecureCloud.Security;
 
 namespace PrettySecureCloudTest.Security
@@ -29,7 +30,7 @@ namespace PrettySecureCloudTest.Security
 		{
 			//Arrange
 
-			var encryptedKey = _unitUnderTest.Encrypt(ExampleKey, ExamplePassword);
+			var encryptedKey = _unitUnderTest.Encrypt(Encoding.Default.GetBytes(ExampleKey), ExamplePassword);
 
 			//Act
 			var result = _unitUnderTest.Decrypt(encryptedKey, ExamplePassword);

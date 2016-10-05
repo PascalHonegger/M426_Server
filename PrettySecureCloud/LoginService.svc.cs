@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
 using PrettySecureCloud.Exceptions;
 using PrettySecureCloud.Model;
 using PrettySecureCloud.Security;
@@ -56,7 +55,7 @@ namespace PrettySecureCloud
 
 			insertUserParam = _insertUser.CreateParameter();
 			insertUserParam.ParameterName = "@encryptionkey";
-			insertUserParam.DbType = DbType.String;
+			insertUserParam.DbType = DbType.Binary;
 			_insertUser.Parameters.Add(insertUserParam);
 
 			//Load user from name
@@ -96,7 +95,7 @@ namespace PrettySecureCloud
 
 			updateUserParam = _updateUser.CreateParameter();
 			updateUserParam.ParameterName = "@encryptionkey";
-			updateUserParam.DbType = DbType.String;
+			updateUserParam.DbType = DbType.Binary;
 			_updateUser.Parameters.Add(updateUserParam);
 
 			_getServiceByUser.CommandText = "select * from tbl_User_Service where fk_User=@iduser";
@@ -113,7 +112,7 @@ namespace PrettySecureCloud
 		/// <returns>True if the username is unique</returns>
 		public bool UsernameUnique(string username)
 		{
-			((IDbDataParameter)_loadUserFromName.Parameters["@username"]).Value = username;
+			((IDbDataParameter) _loadUserFromName.Parameters["@username"]).Value = username;
 
 			var reader = _loadUserFromName.ExecuteReader();
 			var unique = !reader.Read();
@@ -129,7 +128,7 @@ namespace PrettySecureCloud
 		/// <returns>True if the Email is unique</returns>
 		public bool EmailUnique(string mail)
 		{
-			((IDbDataParameter)_loadUserFromEmail.Parameters["@email"]).Value = mail;
+			((IDbDataParameter) _loadUserFromEmail.Parameters["@email"]).Value = mail;
 
 			var reader = _loadUserFromEmail.ExecuteReader();
 			var unique = !reader.Read();
@@ -153,11 +152,12 @@ namespace PrettySecureCloud
 			if (!UsernameUnique(username)) throw new UserAlreadyExistsException("Benutzername");
 
 
-			((IDbDataParameter)_insertUser.Parameters["@username"]).Value = username;
-			((IDbDataParameter)_insertUser.Parameters["@email"]).Value = mail;
-			((IDbDataParameter)_insertUser.Parameters["@password"]).Value = _passwordHasher.CalculateHash(password);
+			((IDbDataParameter) _insertUser.Parameters["@username"]).Value = username;
+			((IDbDataParameter) _insertUser.Parameters["@email"]).Value = mail;
+			((IDbDataParameter) _insertUser.Parameters["@password"]).Value = _passwordHasher.CalculateHash(password);
 			//TODO Generate key
-			((IDbDataParameter)_insertUser.Parameters["@encryptionkey"]).Value = _keyEncryptorDecryptor.Encrypt("TestKey", password);
+			((IDbDataParameter) _insertUser.Parameters["@encryptionkey"]).Value =
+				_keyEncryptorDecryptor.Encrypt(_keyEncryptorDecryptor.GenerateRandomKey(), password);
 
 			_insertUser.ExecuteNonQuery();
 		}
@@ -170,7 +170,7 @@ namespace PrettySecureCloud
 		/// <returns></returns>
 		public User Login(string username, string password)
 		{
-			((IDbDataParameter)_loadUserFromName.Parameters["@username"]).Value = username;
+			((IDbDataParameter) _loadUserFromName.Parameters["@username"]).Value = username;
 
 			var reader = _loadUserFromName.ExecuteReader();
 
@@ -185,7 +185,7 @@ namespace PrettySecureCloud
 			if (!reader.Read()) wrongLogin();
 
 			var hash = (string) reader["password"];
-			
+
 			//Verify Password
 			if (!_passwordHasher.Verify(password, hash)) wrongLogin();
 
@@ -194,11 +194,12 @@ namespace PrettySecureCloud
 				Id = (int) reader["id_User"],
 				Username = (string) reader["username"],
 				Mail = (string) reader["email"],
-				EncryptionKey = Encoding.Default.GetBytes(_keyEncryptorDecryptor.Decrypt((string)reader["encryptionkey"], password))
+				EncryptionKey = _keyEncryptorDecryptor.Decrypt((byte[]) reader["encryptionkey"], password)
 			};
-			user.Services = LoadServices(user.Id);
 
 			reader.Close();
+
+			user.Services = LoadServices(user.Id);
 
 			return user;
 		}
@@ -250,25 +251,33 @@ namespace PrettySecureCloud
 
 		private IEnumerable<CloudService> LoadServices(int userId)
 		{
-			((IDbDataParameter)_getServiceByUser.Parameters["@iduser"]).Value = userId;
+			((IDbDataParameter) _getServiceByUser.Parameters["@iduser"]).Value = userId;
+
+			var allServices = LoadAllServices().ToList();
+
 			var reader = _getServiceByUser.ExecuteReader();
 
-			IList<ServiceType> allServices = LoadAllServices().ToList();
+			var result = new List<CloudService>();
 
 			while (reader.Read())
 			{
-				yield return new CloudService
-				{
-					Id = (int) reader["id_User_Service"],
-					Name = (string) reader["name"],
-					LoginToken = (string) reader["token"],
-					Type = allServices.First(s => Equals(s.Id, (int) reader["fk_Service"]))
-				};
+				result.Add(
+					new CloudService
+					{
+						Id = (int) reader["id_User_Service"],
+						Name = (string) reader["name"],
+						LoginToken = (string) reader["token"],
+						Type = allServices.First(s => Equals(s.Id, (int) reader["fk_Service"]))
+					});
 			}
+
+			reader.Close();
+
+			return result;
 		}
 
 		/// <summary>
-		///     Load all services to the client can decide, which servicetypes he supports
+		///     Load all services to the client who can decide, which servicetypes he supports
 		/// </summary>
 		/// <returns></returns>
 		public IEnumerable<ServiceType> LoadAllServices()
@@ -281,10 +290,10 @@ namespace PrettySecureCloud
 			{
 				serviceList.Add(new ServiceType
 				{
-					Id = (int)reader["id_Service"],
-					Key = (string)reader["appkey"],
-					Name = (string)reader["name"],
-					Secret = (string)reader["appsecret"]
+					Id = (int) reader["id_Service"],
+					Key = (string) reader["appkey"],
+					Name = (string) reader["name"],
+					Secret = (string) reader["appsecret"]
 				});
 			}
 

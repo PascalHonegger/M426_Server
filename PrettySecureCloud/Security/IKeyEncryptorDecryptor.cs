@@ -2,8 +2,10 @@
 {
 	public interface IKeyEncryptorDecryptor
 	{
-		string Encrypt(string key, string password);
+		byte[] Encrypt(byte[] key, string password);
 
-		string Decrypt(string encryptedKey, string password);
+		byte[] Decrypt(byte[] encryptedKey, string password);
+
+		byte[] GenerateRandomKey();
 	}
 }
