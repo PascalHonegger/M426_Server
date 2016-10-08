@@ -57,30 +57,27 @@ namespace PrettySecureCloud
 		///     Add a service to a specified user
 		/// </summary>
 		/// <param name="userId">User</param>
-		/// <param name="type">Service type (dropbox...)</param>
+		/// <param name="typeId">Service typeId (dropbox...)</param>
 		/// <param name="name">Custom name</param>
 		/// <param name="loginToken">Login token used by the client</param>
-		/// <returns></returns>
+		/// <returns>Id of the added service</returns>
 		[OperationContract]
-		CloudService AddService(int userId, ServiceType type, string name, string loginToken);
+		int AddService(int userId, int typeId, string name, string loginToken);
 
 		/// <summary>
 		///     Change the properties of an existing service
 		/// </summary>
-		/// <param name="userId">User</param>
 		/// <param name="serviceId">Service</param>
-		/// <param name="newName">Updated name (or current name)</param>
-		/// <param name="newLoginToken">Updated login toke (or current token)</param>
+		/// <param name="newName">Updated name</param>
 		[OperationContract]
-		void UpdateService(int userId, int serviceId, string newName, string newLoginToken);
+		void UpdateService(int serviceId, string newName);
 
 		/// <summary>
 		///     Remove a specified service from a user
 		/// </summary>
-		/// <param name="userId">User</param>
 		/// <param name="serviceId">Service</param>
 		[OperationContract]
-		void RemoveService(int userId, int serviceId);
+		void RemoveService(int serviceId);
 
 		/// <summary>
 		///     Load all services to the client can decide, which servicetypes he supports

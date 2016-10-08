@@ -26,11 +26,9 @@ namespace PrettySecureCloudTest
 
 			foreach (var tempUser in _temporaryUsers)
 			{
-				foreach (var service in tempUser.Services.ToList())
-				{
-					_deleteServicesFromUserCommand.CommandText = $"DELETE FROM tbl_User_Service WHERE fk_User={service.Id}";
-					_deleteServicesFromUserCommand.ExecuteNonQuery();
-				}
+				_deleteServicesFromUserCommand.CommandText = $"DELETE FROM tbl_User_Service WHERE fk_User={tempUser.Id}";
+				_deleteServicesFromUserCommand.ExecuteNonQuery();
+
 				_deleteUserCommand.CommandText = $"DELETE FROM tbl_User WHERE id_User={tempUser.Id}";
 				_deleteUserCommand.ExecuteNonQuery();
 			}
@@ -135,6 +133,52 @@ namespace PrettySecureCloudTest
 
 			//Assert
 			Assert.That(unique, Is.False);
+		}
+
+		[Test]
+		public void AddServiceIsAdded()
+		{
+			//Arrange
+			var username = RandomString;
+			var password = RandomString;
+
+			var randomUser = RegisterTemporaryUser(username, password);
+			const string serviceName = "Test service";
+			const string serviceToken = "QWER4312QWER";
+			var randomServiceType = _unitUnderTest.LoadAllServices().First();
+
+			//Act
+			var id = _unitUnderTest.AddService(randomUser.Id, randomServiceType.Id, serviceName, serviceToken);
+
+			//Assert
+			var servicesFromUser = _unitUnderTest.Login(username, password).Services.ToList();
+
+			Assert.That(servicesFromUser, Has.Count.EqualTo(1));
+			var addedService = servicesFromUser.First();
+			Assert.That(addedService.Id, Is.EqualTo(id));
+			Assert.That(addedService.LoginToken, Is.EqualTo(serviceToken));
+			Assert.That(addedService.Name, Is.EqualTo(serviceName));
+			Assert.That(addedService.Type.Id, Is.EqualTo(randomServiceType.Id));
+		}
+
+		[Test]
+		public void RemoveServiceIsRemoved()
+		{
+			//Arrange
+			var username = RandomString;
+			var password = RandomString;
+
+			var randomUser = RegisterTemporaryUser(username, password);
+			var randomServiceType = _unitUnderTest.LoadAllServices().First();
+
+			//Act
+			var addedServiceId = _unitUnderTest.AddService(randomUser.Id, randomServiceType.Id, RandomString, RandomString);
+			_unitUnderTest.RemoveService(addedServiceId);
+
+			//Assert
+			var servicesFromUser = _unitUnderTest.Login(username, password).Services.ToList();
+
+			Assert.That(servicesFromUser, Is.Empty);
 		}
 	}
 }

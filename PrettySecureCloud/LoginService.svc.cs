@@ -19,6 +19,9 @@ namespace PrettySecureCloud
 		private readonly IDbCommand _loadUserFromEmail;
 		private readonly IDbCommand _loadUserFromId;
 		private readonly IDbCommand _loadUserFromName;
+		private readonly IDbCommand _addService;
+		private readonly IDbCommand _removeService;
+		private readonly IDbCommand _updateService;
 		private readonly IPasswordHasher _passwordHasher;
 
 		public LoginService()
@@ -34,6 +37,9 @@ namespace PrettySecureCloud
 			_changePassword = databaseConnection.Command;
 			_getServiceTypes = databaseConnection.Command;
 			_getServiceByUser = databaseConnection.Command;
+			_addService = databaseConnection.Command;
+			_removeService = databaseConnection.Command;
+			_updateService = databaseConnection.Command;
 
 			//Insert user
 			_insertUser.CommandText =
@@ -87,20 +93,20 @@ namespace PrettySecureCloud
 			_changePassword.CommandText =
 				"update tbl_User set password=@password, encryptionkey=@encryptionkey where id_User = @iduser";
 
-			var updateUserParam = _changePassword.CreateParameter();
-			updateUserParam.ParameterName = "@password";
-			updateUserParam.DbType = DbType.String;
-			_changePassword.Parameters.Add(updateUserParam);
+			var changePasswordParam = _changePassword.CreateParameter();
+			changePasswordParam.ParameterName = "@password";
+			changePasswordParam.DbType = DbType.String;
+			_changePassword.Parameters.Add(changePasswordParam);
 
-			updateUserParam = _changePassword.CreateParameter();
-			updateUserParam.ParameterName = "@iduser";
-			updateUserParam.DbType = DbType.Int32;
-			_changePassword.Parameters.Add(updateUserParam);
+			changePasswordParam = _changePassword.CreateParameter();
+			changePasswordParam.ParameterName = "@iduser";
+			changePasswordParam.DbType = DbType.Int32;
+			_changePassword.Parameters.Add(changePasswordParam);
 
-			updateUserParam = _changePassword.CreateParameter();
-			updateUserParam.ParameterName = "@encryptionkey";
-			updateUserParam.DbType = DbType.Binary;
-			_changePassword.Parameters.Add(updateUserParam);
+			changePasswordParam = _changePassword.CreateParameter();
+			changePasswordParam.ParameterName = "@encryptionkey";
+			changePasswordParam.DbType = DbType.Binary;
+			_changePassword.Parameters.Add(changePasswordParam);
 
 			//Load services from a specified user
 			_getServiceByUser.CommandText = "select * from tbl_User_Service where fk_User=@iduser";
@@ -111,6 +117,50 @@ namespace PrettySecureCloud
 
 			//Load all servicetypes
 			_getServiceTypes.CommandText = "select * from tbl_Service";
+
+			//Add service to a user
+			_addService.CommandText = "insert into tbl_User_Service(name, token, fk_User, fk_Service) values (@name, @token, @iduser, @idservice); select cast(scope_identity() as int)";
+
+			var addServiceParam = _addService.CreateParameter();
+			addServiceParam.ParameterName = "@name";
+			addServiceParam.DbType = DbType.String;
+			_addService.Parameters.Add(addServiceParam);
+
+			addServiceParam = _addService.CreateParameter();
+			addServiceParam.ParameterName = "@token";
+			addServiceParam.DbType = DbType.String;
+			_addService.Parameters.Add(addServiceParam);
+
+			addServiceParam = _addService.CreateParameter();
+			addServiceParam.ParameterName = "@iduser";
+			addServiceParam.DbType = DbType.Int32;
+			_addService.Parameters.Add(addServiceParam);
+
+			addServiceParam = _addService.CreateParameter();
+			addServiceParam.ParameterName = "@idservice";
+			addServiceParam.DbType = DbType.Int32;
+			_addService.Parameters.Add(addServiceParam);
+
+			//Remove service from a user
+			_removeService.CommandText = "delete from tbl_User_Service where id_User_Service=@iduserservice";
+
+			var removeServiceParam = _removeService.CreateParameter();
+			removeServiceParam.ParameterName = "@iduserservice";
+			removeServiceParam.DbType = DbType.Int32;
+			_removeService.Parameters.Add(removeServiceParam);
+
+			//Update service from a user
+			_updateService.CommandText = "update tbl_User_Service set name=@name where id_User_Service=@iduserservice";
+
+			var updateServiceParam = _updateService.CreateParameter();
+			updateServiceParam.ParameterName = "@name";
+			updateServiceParam.DbType = DbType.String;
+			_updateService.Parameters.Add(updateServiceParam);
+
+			updateServiceParam = _updateService.CreateParameter();
+			updateServiceParam.ParameterName = "@iduserservice";
+			updateServiceParam.DbType = DbType.Int32;
+			_updateService.Parameters.Add(updateServiceParam);
 		}
 
 		/// <summary>
@@ -251,35 +301,42 @@ namespace PrettySecureCloud
 		///     Add a service to a specified user
 		/// </summary>
 		/// <param name="userId">User</param>
-		/// <param name="type">Service type (dropbox...)</param>
+		/// <param name="typeId">Service typeId (dropbox...)</param>
 		/// <param name="name">Custom name</param>
 		/// <param name="loginToken">Login token used by the client</param>
 		/// <returns></returns>
-		public CloudService AddService(int userId, ServiceType type, string name, string loginToken)
+		public int AddService(int userId, int typeId, string name, string loginToken)
 		{
-			throw new NotImplementedException();
+			((IDbDataParameter)_addService.Parameters["@idservice"]).Value = typeId;
+			((IDbDataParameter)_addService.Parameters["@iduser"]).Value = userId;
+			((IDbDataParameter)_addService.Parameters["@name"]).Value = name;
+			((IDbDataParameter)_addService.Parameters["@token"]).Value = loginToken;
+
+			return (int)_addService.ExecuteScalar();
 		}
 
 		/// <summary>
 		///     Change the properties of an existing service
 		/// </summary>
-		/// <param name="userId">User</param>
 		/// <param name="serviceId">Service</param>
-		/// <param name="newName">Updated name (or current name)</param>
-		/// <param name="newLoginToken">Updated login toke (or current token)</param>
-		public void UpdateService(int userId, int serviceId, string newName, string newLoginToken)
+		/// <param name="newName">Updated name</param>
+		public void UpdateService(int serviceId, string newName)
 		{
-			throw new NotImplementedException();
+			((IDbDataParameter)_updateService.Parameters["@iduserservice"]).Value = serviceId;
+			((IDbDataParameter)_updateService.Parameters["@name"]).Value = newName;
+
+			_updateService.ExecuteNonQuery();
 		}
 
 		/// <summary>
 		///     Remove a specified service from a user
 		/// </summary>
-		/// <param name="userId">User</param>
 		/// <param name="serviceId">Service</param>
-		public void RemoveService(int userId, int serviceId)
+		public void RemoveService(int serviceId)
 		{
-			throw new NotImplementedException();
+			((IDbDataParameter) _removeService.Parameters["@iduserservice"]).Value = serviceId;
+
+			_removeService.ExecuteNonQuery();
 		}
 
 		/// <summary>
