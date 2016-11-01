@@ -66,7 +66,7 @@ namespace PrettySecureCloud
 			_insertUser.Parameters.Add(insertUserParam);
 
 			//Load user from name
-			_loadUserFromName.CommandText = "select * from tbl_User where username = @username";
+			_loadUserFromName.CommandText = "select * from tbl_User where username = @username COLLATE Latin1_General_CS_AS";
 
 			var loadUserFromNameParam = _loadUserFromName.CreateParameter();
 			loadUserFromNameParam.ParameterName = "@username";

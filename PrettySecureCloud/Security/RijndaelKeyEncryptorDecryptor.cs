@@ -33,7 +33,7 @@ namespace PrettySecureCloud.Security
 
 		public byte[] GenerateRandomKey()
 		{
-			var key = new byte[256];
+			var key = new byte[32];
 			_random.NextBytes(key);
 			return key;
 		}
