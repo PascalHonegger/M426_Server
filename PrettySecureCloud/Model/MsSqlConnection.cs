@@ -8,13 +8,13 @@ namespace PrettySecureCloud.Model
 	{
 		public MsSqlConnection()
 		{
-			Connection = new SqlConnection(Settings.Default.ConnectionString);
+			_connection = new SqlConnection(Settings.Default.ConnectionString);
 
-			Connection.Open();
+			_connection.Open();
 		}
 
-		private SqlConnection Connection { get; }
+		private readonly SqlConnection _connection;
 
-		public IDbCommand Command => Connection.CreateCommand();
+		public IDbCommand Command => _connection.CreateCommand();
 	}
 }
