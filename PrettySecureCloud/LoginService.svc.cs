@@ -109,7 +109,7 @@ namespace PrettySecureCloud
 			_changePassword.Parameters.Add(changePasswordParam);
 
 			//Load services from a specified user
-			_getServiceByUser.CommandText = "select * from tbl_User_Service join tbl_Service on id_Service=fk_Service where fk_User=@iduser";
+			_getServiceByUser.CommandText = "select id_User_Service, token, tbl_User_Service.name as customname, id_Service, appkey, appsecret, tbl_Service.name from tbl_User_Service join tbl_Service on id_Service=fk_Service where fk_User=@iduser";
 			var getServiceByUserParam = _getServiceByUser.CreateParameter();
 			getServiceByUserParam.ParameterName = "@iduser";
 			getServiceByUserParam.DbType = DbType.Int32;
@@ -376,7 +376,7 @@ namespace PrettySecureCloud
 					new CloudService
 					{
 						Id = (int) reader["id_User_Service"],
-						Name = (string) reader["name"],
+						Name = (string) reader["customname"],
 						LoginToken = (string) reader["token"],
 						Type = new ServiceType
 						{
