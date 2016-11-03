@@ -6,21 +6,19 @@ namespace PrettySecureCloud.Model
 {
 	public class MsSqlConnection : IDatabaseConnection
 	{
-		public MsSqlConnection()
+		/// <inheritdoc />
+		public IDbConnection OpenConnection()
 		{
-			_connection = new SqlConnection(Settings.Default.ConnectionString);
+			var connection = new SqlConnection(Settings.Default.ConnectionString);
 
-			_connection.Open();
+			connection.Open();
+
+			return connection;
 		}
 
-		private readonly SqlConnection _connection;
-
-		public IDbCommand Command => _connection.CreateCommand();
-
-		~MsSqlConnection()
+		public IDbCommand CreateEmpyCommand()
 		{
-			_connection?.Close();
-			_connection?.Dispose();
+			return new SqlCommand();
 		}
 	}
 }

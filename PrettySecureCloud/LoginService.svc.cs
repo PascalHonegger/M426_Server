@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using PrettySecureCloud.Exceptions;
 using PrettySecureCloud.Model;
 using PrettySecureCloud.Security;
@@ -24,22 +23,24 @@ namespace PrettySecureCloud
 		private readonly IDbCommand _updateService;
 		private readonly IPasswordHasher _passwordHasher;
 
+		private readonly IDatabaseConnection _databaseConnection;
+
 		public LoginService()
 		{
 			_passwordHasher = new BCryptHasher();
 			_keyEncryptorDecryptor = new RijndaelKeyEncryptorDecryptor();
-			IDatabaseConnection databaseConnection = new MsSqlConnection();
+			_databaseConnection = new MsSqlConnection();
 
-			_insertUser = databaseConnection.Command;
-			_loadUserFromName = databaseConnection.Command;
-			_loadUserFromEmail = databaseConnection.Command;
-			_loadUserFromId = databaseConnection.Command;
-			_changePassword = databaseConnection.Command;
-			_getServiceTypes = databaseConnection.Command;
-			_getServiceByUser = databaseConnection.Command;
-			_addService = databaseConnection.Command;
-			_removeService = databaseConnection.Command;
-			_updateService = databaseConnection.Command;
+			_insertUser = _databaseConnection.CreateEmpyCommand();
+			_loadUserFromName = _databaseConnection.CreateEmpyCommand();
+			_loadUserFromEmail = _databaseConnection.CreateEmpyCommand();
+			_loadUserFromId = _databaseConnection.CreateEmpyCommand();
+			_changePassword = _databaseConnection.CreateEmpyCommand();
+			_getServiceTypes = _databaseConnection.CreateEmpyCommand();
+			_getServiceByUser = _databaseConnection.CreateEmpyCommand();
+			_addService = _databaseConnection.CreateEmpyCommand();
+			_removeService = _databaseConnection.CreateEmpyCommand();
+			_updateService = _databaseConnection.CreateEmpyCommand();
 
 			//Insert user
 			_insertUser.CommandText =
@@ -170,13 +171,18 @@ namespace PrettySecureCloud
 		/// <returns>True if the username is unique</returns>
 		public bool UsernameUnique(string username)
 		{
-			((IDbDataParameter) _loadUserFromName.Parameters["@username"]).Value = username;
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_loadUserFromName.Connection = connection;
+				((IDbDataParameter) _loadUserFromName.Parameters["@username"]).Value = username;
 
-			var reader = _loadUserFromName.ExecuteReader();
-			var unique = !reader.Read();
-			reader.Close();
+				var reader = _loadUserFromName.ExecuteReader();
+				var unique = !reader.Read();
+				reader.Close();
+				_loadUserFromName.Connection = null;
 
-			return unique;
+				return unique;
+			}
 		}
 
 		/// <summary>
@@ -186,13 +192,18 @@ namespace PrettySecureCloud
 		/// <returns>True if the Email is unique</returns>
 		public bool EmailUnique(string mail)
 		{
-			((IDbDataParameter) _loadUserFromEmail.Parameters["@email"]).Value = mail;
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_loadUserFromEmail.Connection = connection;
+				((IDbDataParameter) _loadUserFromEmail.Parameters["@email"]).Value = mail;
 
-			var reader = _loadUserFromEmail.ExecuteReader();
-			var unique = !reader.Read();
-			reader.Close();
+				var reader = _loadUserFromEmail.ExecuteReader();
+				var unique = !reader.Read();
+				reader.Close();
+				_loadUserFromEmail.Connection = null;
 
-			return unique;
+				return unique;
+			}
 		}
 
 		/// <summary>
@@ -209,14 +220,20 @@ namespace PrettySecureCloud
 			if (!EmailUnique(mail)) throw new UserAlreadyExistsException("E-Mail");
 			if (!UsernameUnique(username)) throw new UserAlreadyExistsException("Benutzername");
 
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_insertUser.Connection = connection;
 
-			((IDbDataParameter) _insertUser.Parameters["@username"]).Value = username;
-			((IDbDataParameter) _insertUser.Parameters["@email"]).Value = mail;
-			((IDbDataParameter) _insertUser.Parameters["@password"]).Value = _passwordHasher.CalculateHash(password);
-			((IDbDataParameter) _insertUser.Parameters["@encryptionkey"]).Value =
-				_keyEncryptorDecryptor.Encrypt(_keyEncryptorDecryptor.GenerateRandomKey(), password);
+				((IDbDataParameter) _insertUser.Parameters["@username"]).Value = username;
+				((IDbDataParameter) _insertUser.Parameters["@email"]).Value = mail;
+				((IDbDataParameter) _insertUser.Parameters["@password"]).Value = _passwordHasher.CalculateHash(password);
+				((IDbDataParameter) _insertUser.Parameters["@encryptionkey"]).Value =
+					_keyEncryptorDecryptor.Encrypt(_keyEncryptorDecryptor.GenerateRandomKey(), password);
 
-			_insertUser.ExecuteNonQuery();
+				_insertUser.ExecuteNonQuery();
+
+				_insertUser.Connection = null;
+			}
 		}
 
 		/// <summary>
@@ -227,38 +244,44 @@ namespace PrettySecureCloud
 		/// <returns></returns>
 		public User Login(string username, string password)
 		{
-			((IDbDataParameter) _loadUserFromName.Parameters["@username"]).Value = username;
-
-			var reader = _loadUserFromName.ExecuteReader();
-
-			//Reader needs to be closed in case there is an exception
-			Action wrongLogin = () =>
+			using (var connection = _databaseConnection.OpenConnection())
 			{
+				_loadUserFromName.Connection = connection;
+				((IDbDataParameter) _loadUserFromName.Parameters["@username"]).Value = username;
+
+				var reader = _loadUserFromName.ExecuteReader();
+
+				//Reader needs to be closed in case there is an exception
+				Action wrongLogin = () =>
+				{
+					reader.Close();
+					throw new WrongCredentialsException();
+				};
+
+				//Validate user found
+				if (!reader.Read()) wrongLogin();
+
+				var hash = (string) reader["password"];
+
+				//Verify Password
+				if (!_passwordHasher.Verify(password, hash)) wrongLogin();
+
+				var user = new User
+				{
+					Id = (int) reader["id_User"],
+					Username = (string) reader["username"],
+					Mail = (string) reader["email"],
+					EncryptionKey = _keyEncryptorDecryptor.Decrypt((byte[]) reader["encryptionkey"], password)
+				};
+
 				reader.Close();
-				throw new WrongCredentialsException();
-			};
 
-			//Validate user found
-			if (!reader.Read()) wrongLogin();
+				user.Services = LoadServices(user.Id);
 
-			var hash = (string) reader["password"];
+				_loadUserFromName.Connection = null;
 
-			//Verify Password
-			if (!_passwordHasher.Verify(password, hash)) wrongLogin();
-
-			var user = new User
-			{
-				Id = (int) reader["id_User"],
-				Username = (string) reader["username"],
-				Mail = (string) reader["email"],
-				EncryptionKey = _keyEncryptorDecryptor.Decrypt((byte[]) reader["encryptionkey"], password)
-			};
-
-			reader.Close();
-
-			user.Services = LoadServices(user.Id);
-
-			return user;
+				return user;
+			}
 		}
 
 		/// <summary>
@@ -269,32 +292,41 @@ namespace PrettySecureCloud
 		/// <param name="newPassword">New password</param>
 		public void ChangePassword(int userId, string currentPassword, string newPassword)
 		{
-			((IDataParameter) _loadUserFromId.Parameters["@iduser"]).Value = userId;
-			var reader = _loadUserFromId.ExecuteReader();
-
-			Action changeFailed = () =>
+			using (var connection = _databaseConnection.OpenConnection())
 			{
+				_loadUserFromId.Connection = connection;
+
+				((IDataParameter) _loadUserFromId.Parameters["@iduser"]).Value = userId;
+				var reader = _loadUserFromId.ExecuteReader();
+
+				Action changeFailed = () =>
+				{
+					reader.Close();
+					throw new WrongCredentialsException();
+				};
+
+				if (!reader.Read()) changeFailed();
+
+				//Wrong current password
+				if (!_passwordHasher.Verify(currentPassword, (string) reader["password"])) changeFailed();
+
+				var currentKey = (byte[]) reader["encryptionkey"];
+
 				reader.Close();
-				throw new WrongCredentialsException();
-			};
 
-			if (!reader.Read()) changeFailed();
+				var unencrypted = _keyEncryptorDecryptor.Decrypt(currentKey, currentPassword);
 
-			//Wrong current password
-			if (!_passwordHasher.Verify(currentPassword, (string) reader["password"])) changeFailed();
+				_changePassword.Connection = connection;
 
-			var currentKey = (byte[]) reader["encryptionkey"];
+				((IDataParameter) _changePassword.Parameters["@password"]).Value = _passwordHasher.CalculateHash(newPassword);
+				((IDataParameter) _changePassword.Parameters["@iduser"]).Value = userId;
+				((IDataParameter) _changePassword.Parameters["@encryptionkey"]).Value = _keyEncryptorDecryptor.Encrypt(unencrypted,
+					newPassword);
 
-			reader.Close();
+				_changePassword.ExecuteNonQuery();
 
-			var unencrypted = _keyEncryptorDecryptor.Decrypt(currentKey, currentPassword);
-
-			((IDataParameter) _changePassword.Parameters["@password"]).Value = _passwordHasher.CalculateHash(newPassword);
-			((IDataParameter) _changePassword.Parameters["@iduser"]).Value = userId;
-			((IDataParameter) _changePassword.Parameters["@encryptionkey"]).Value = _keyEncryptorDecryptor.Encrypt(unencrypted,
-				newPassword);
-
-			_changePassword.ExecuteNonQuery();
+				_loadUserFromId.Connection = null;
+			}
 		}
 
 		/// <summary>
@@ -307,12 +339,21 @@ namespace PrettySecureCloud
 		/// <returns></returns>
 		public int AddService(int userId, int typeId, string name, string loginToken)
 		{
-			((IDbDataParameter)_addService.Parameters["@idservice"]).Value = typeId;
-			((IDbDataParameter)_addService.Parameters["@iduser"]).Value = userId;
-			((IDbDataParameter)_addService.Parameters["@name"]).Value = name;
-			((IDbDataParameter)_addService.Parameters["@token"]).Value = loginToken;
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_addService.Connection = connection;
 
-			return (int)_addService.ExecuteScalar();
+				((IDbDataParameter) _addService.Parameters["@idservice"]).Value = typeId;
+				((IDbDataParameter) _addService.Parameters["@iduser"]).Value = userId;
+				((IDbDataParameter) _addService.Parameters["@name"]).Value = name;
+				((IDbDataParameter) _addService.Parameters["@token"]).Value = loginToken;
+
+				var id = (int) _addService.ExecuteScalar();
+
+				_addService.Connection = null;
+
+				return id;
+			}
 		}
 
 		/// <summary>
@@ -322,10 +363,17 @@ namespace PrettySecureCloud
 		/// <param name="newName">Updated name</param>
 		public void UpdateService(int serviceId, string newName)
 		{
-			((IDbDataParameter)_updateService.Parameters["@iduserservice"]).Value = serviceId;
-			((IDbDataParameter)_updateService.Parameters["@name"]).Value = newName;
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_updateService.Connection = connection;
 
-			_updateService.ExecuteNonQuery();
+				((IDbDataParameter) _updateService.Parameters["@iduserservice"]).Value = serviceId;
+				((IDbDataParameter) _updateService.Parameters["@name"]).Value = newName;
+
+				_updateService.ExecuteNonQuery();
+
+				_updateService.Connection = null;
+			}
 		}
 
 		/// <summary>
@@ -334,9 +382,15 @@ namespace PrettySecureCloud
 		/// <param name="serviceId">Service</param>
 		public void RemoveService(int serviceId)
 		{
-			((IDbDataParameter) _removeService.Parameters["@iduserservice"]).Value = serviceId;
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_removeService.Connection = connection;
+				((IDbDataParameter) _removeService.Parameters["@iduserservice"]).Value = serviceId;
 
-			_removeService.ExecuteNonQuery();
+				_removeService.ExecuteNonQuery();
+
+				_removeService.Connection = null;
+			}
 		}
 
 		/// <summary>
@@ -345,51 +399,63 @@ namespace PrettySecureCloud
 		/// <returns></returns>
 		public IEnumerable<ServiceType> LoadAllServices()
 		{
-			var reader = _getServiceTypes.ExecuteReader();
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_getServiceTypes.Connection = connection;
+				var reader = _getServiceTypes.ExecuteReader();
 
-			var serviceList = new List<ServiceType>();
+				var serviceList = new List<ServiceType>();
 
-			while (reader.Read())
-				serviceList.Add(new ServiceType
-				{
-					Id = (int) reader["id_Service"],
-					Key = (string) reader["appkey"],
-					Name = (string) reader["name"],
-					Secret = (string) reader["appsecret"]
-				});
+				while (reader.Read())
+					serviceList.Add(new ServiceType
+					{
+						Id = (int) reader["id_Service"],
+						Key = (string) reader["appkey"],
+						Name = (string) reader["name"],
+						Secret = (string) reader["appsecret"]
+					});
 
-			reader.Close();
+				reader.Close();
 
-			return serviceList;
+				_getServiceByUser.Connection = null;
+
+				return serviceList;
+			}
 		}
 
 		private IEnumerable<CloudService> LoadServices(int userId)
 		{
-			((IDbDataParameter) _getServiceByUser.Parameters["@iduser"]).Value = userId;
+			using (var connection = _databaseConnection.OpenConnection())
+			{
+				_getServiceByUser.Connection = connection;
+				((IDbDataParameter) _getServiceByUser.Parameters["@iduser"]).Value = userId;
 
-			var reader = _getServiceByUser.ExecuteReader();
+				var reader = _getServiceByUser.ExecuteReader();
 
-			var result = new List<CloudService>();
+				var result = new List<CloudService>();
 
-			while (reader.Read())
-				result.Add(
-					new CloudService
-					{
-						Id = (int) reader["id_User_Service"],
-						Name = (string) reader["customname"],
-						LoginToken = (string) reader["token"],
-						Type = new ServiceType
+				while (reader.Read())
+					result.Add(
+						new CloudService
 						{
-							Id = (int)reader["id_Service"],
-							Key = (string)reader["appkey"],
-							Name = (string)reader["name"],
-							Secret = (string)reader["appsecret"]
-						}
-					});
+							Id = (int) reader["id_User_Service"],
+							Name = (string) reader["customname"],
+							LoginToken = (string) reader["token"],
+							Type = new ServiceType
+							{
+								Id = (int) reader["id_Service"],
+								Key = (string) reader["appkey"],
+								Name = (string) reader["name"],
+								Secret = (string) reader["appsecret"]
+							}
+						});
 
-			reader.Close();
+				reader.Close();
 
-			return result;
+				_getServiceByUser.Connection = null;
+
+				return result;
+			}
 		}
 	}
 }

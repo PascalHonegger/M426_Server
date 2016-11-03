@@ -23,14 +23,22 @@ namespace PrettySecureCloudTest
 		public void Teardown()
 		{
 			_unitUnderTest = null;
-
-			foreach (var tempUser in _temporaryUsers)
+			using (var connection = _connection.OpenConnection())
 			{
-				_deleteServicesFromUserCommand.CommandText = $"DELETE FROM tbl_User_Service WHERE fk_User={tempUser.Id}";
-				_deleteServicesFromUserCommand.ExecuteNonQuery();
+				_deleteServicesFromUserCommand.Connection = connection;
+				_deleteUserCommand.Connection = connection;
 
-				_deleteUserCommand.CommandText = $"DELETE FROM tbl_User WHERE id_User={tempUser.Id}";
-				_deleteUserCommand.ExecuteNonQuery();
+				foreach (var tempUser in _temporaryUsers)
+				{
+					_deleteServicesFromUserCommand.CommandText = $"DELETE FROM tbl_User_Service WHERE fk_User={tempUser.Id}";
+					_deleteServicesFromUserCommand.ExecuteNonQuery();
+
+					_deleteUserCommand.CommandText = $"DELETE FROM tbl_User WHERE id_User={tempUser.Id}";
+					_deleteUserCommand.ExecuteNonQuery();
+				}
+
+				_deleteServicesFromUserCommand.Connection = null;
+				_deleteUserCommand.Connection = null;
 			}
 		}
 
@@ -39,15 +47,16 @@ namespace PrettySecureCloudTest
 
 		public LoginServiceTest()
 		{
-			var connection = new MsSqlConnection();
+			_connection = new MsSqlConnection();
 
-			_deleteUserCommand = connection.Command;
-			_deleteServicesFromUserCommand = connection.Command;
+			_deleteUserCommand = _connection.CreateEmpyCommand();
+			_deleteServicesFromUserCommand = _connection.CreateEmpyCommand();
 		}
 
 		private LoginService _unitUnderTest;
 
 		private readonly IList<User> _temporaryUsers = new List<User>();
+		private readonly MsSqlConnection _connection;
 
 		private User TemporaryUser => RegisterTemporaryUser(RandomString, RandomString);
 
