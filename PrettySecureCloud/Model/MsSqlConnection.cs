@@ -16,5 +16,11 @@ namespace PrettySecureCloud.Model
 		private readonly SqlConnection _connection;
 
 		public IDbCommand Command => _connection.CreateCommand();
+
+		~MsSqlConnection()
+		{
+			_connection?.Close();
+			_connection?.Dispose();
+		}
 	}
 }

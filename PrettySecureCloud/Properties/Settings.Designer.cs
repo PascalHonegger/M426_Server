@@ -27,7 +27,8 @@ namespace PrettySecureCloud.Properties {
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
         [global::System.Configuration.DefaultSettingValueAttribute("Data Source=prettysecurecloud.database.windows.net;Initial Catalog=PrettySecureCl" +
-            "oud;Persist Security Info=True;User ID=Overlord;Password=P@ssw0rd")]
+            "oud;Persist Security Info=True;User ID=Overlord;Password=P@ssw0rd;Encrypt=True;T" +
+            "rustServerCertificate=True;TransparentNetworkIPResolution=False")]
         public string ConnectionString {
             get {
                 return ((string)(this["ConnectionString"]));
